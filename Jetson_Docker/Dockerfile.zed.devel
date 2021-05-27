@@ -1,0 +1,42 @@
+#https://ngc.nvidia.com/catalog/containers/nvidia:l4t-base
+ARG L4T_MINOR_VERSION
+
+FROM jetson/ros-melodic:r32.${L4T_MINOR_VERSION}
+
+# has to be introduced after FROM. See this 
+# https://docs.docker.com/engine/reference/builder/#understand-how-arg-and-from-interact
+ARG L4T_MINOR_VERSION
+ARG ZED_SDK_MAJOR
+ARG ZED_SDK_MINOR
+ARG JETPACK_MAJOR
+ARG JETPACK_MINOR
+
+#Build ZED SDK without samples and calibration tools
+
+#This environment variable is needed to use the streaming features on Jetson inside a container
+ENV ROS_WS /ros_ws
+ENV LOGNAME root
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update -y && apt-get install --no-install-recommends lsb-release wget less udev sudo apt-transport-https build-essential cmake -y&& \
+    echo "# R32 (release), REVISION: ${L4T_MINOR_VERSION}" > /etc/nv_tegra_release 
+RUN wget -q --no-check-certificate -O ZED_SDK_Linux_JP.run https://download.stereolabs.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}/jp${JETPACK_MAJOR}${JETPACK_MINOR}/jetsons
+RUN chmod +x ZED_SDK_Linux_JP.run 
+RUN ./ZED_SDK_Linux_JP.run silent skip_tools && \
+    rm -rf /usr/local/zed/resources/* \
+    rm -rf ZED_SDK_Linux_JP.run && \
+    rm -rf /var/lib/apt/lists/*
+
+#This symbolic link is needed to use the streaming features on Jetson inside a container
+RUN ln -sf /usr/lib/aarch64-linux-gnu/tegra/libv4l2.so.0 /usr/lib/aarch64-linux-gnu/libv4l2.so
+
+#Get ROS wrapper from Github, and build environment
+RUN mkdir -p ${ROS_WS}/src && \
+    cd ${ROS_WS}/src && pwd && \
+    git clone https://github.com/stereolabs/zed-ros-wrapper.git
+RUN apt-get update -y && \
+    . /opt/ros/melodic/setup.sh && \
+    rosdep install --from-paths ${ROS_WS}/src --ignore-src -r -y && \ 
+    rm -rf /var/lib/apt/lists/* && \
+    catkin_make -DCMAKE_BUILD_TYPE=Release -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs -DCUDA_CUDART_LIBRARY=/usr/local/cuda/lib64/stubs -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"
+
+WORKDIR ${ROS_WS}
