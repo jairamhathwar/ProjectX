@@ -21,10 +21,11 @@ int main(int argc, char** argv)
     ServoController controller(node, private_nh);
 
     double freq;
-    node.getParam("frequency", freq);
-
+    private_nh.getParam("frequency", freq);
+   
     ros::Time internal_time(0);
     const ros::Duration dt(1.0/freq);
+
     ros::Rate rate(freq);
 
     // start the driver

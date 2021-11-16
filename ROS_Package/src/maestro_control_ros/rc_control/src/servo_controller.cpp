@@ -186,11 +186,16 @@ void ServoController::update(const ros::Time& time, const ros::Duration& period)
 {
     _dynParamUpdate();
     Commands curr_cmd = *(_command.readFromRT());
+    // ROS_INFO_STREAM("Receive control - Steer: "<<curr_cmd.steer
+    //                         <<" Throttle: "<<curr_cmd.throttle
+    //                         <<" Time: "<<curr_cmd.stamp);
     const double dt = (time - curr_cmd.stamp).toSec();
+    
     if (dt > _cmd_vel_timeout){
         natural();
         return;
     }
+    
     _device_list[_device_idx].setTarget(_steering_ch, _convertTarget(curr_cmd.steer, true));
     _device_list[_device_idx].setTarget(_throttle_ch, _convertTarget(curr_cmd.throttle, false));
 }
