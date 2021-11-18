@@ -2,7 +2,7 @@
 
 
 ServoController::ServoController(ros::NodeHandle node, ros::NodeHandle private_nh):
-    _nh(node), _pvt_nh(private_nh), _running(true)
+    _nh(node), _pvt_nh(private_nh), _running(false)
 {
     // set dynamic reconfig
     _f = boost::bind(&ServoController::_dynParamCallback, this, _1, _2);
@@ -15,10 +15,10 @@ ServoController::ServoController(ros::NodeHandle node, ros::NodeHandle private_n
     _device_idx = _SearchController();
     if(_device_idx<0)
     {
-        ROS_WARN("The controller is not intialized!");
-        _running = false;
+        ROS_ERROR("The controller is not intialized after 30 secs!");
         return;
-    }  
+    } 
+    _running = true; 
 
     // get a copy of the controller setting
     Maestro::Device::ChannelSettings steering_ch_setting = _device_list[_device_idx ].getChannelSettings(_steering_ch);
@@ -40,7 +40,7 @@ ServoController::ServoController(ros::NodeHandle node, ros::NodeHandle private_n
     _device_list[_device_idx].setAcceleration(_throttle_ch, 0);
     natural();
 
-    // set up ros subscriber
+     // set up ros subscriber
     _sub_command = _nh.subscribe(_sub_topic, 1 , &ServoController::_subCallback, this);
     ROS_INFO_STREAM("Controller subscribe to topic: "<<_sub_topic);
 
@@ -48,21 +48,31 @@ ServoController::ServoController(ros::NodeHandle node, ros::NodeHandle private_n
 
 ServoController::~ServoController()
 {
-    ROS_INFO("deconstructor");
+    ROS_DEBUG("Exit");
 }
 
 int ServoController::_SearchController()
 {
     int index = -1;
+    bool first_error = true;
     // scan all connected device
     _device_list = Maestro::Device::getConnectedDevices();
-    if(_device_list.size() == 0){
-        ROS_ERROR("No controller device found");
-    }else //if(_device_list.size() == 1)
-    {
-        index = 0;
-        ROS_INFO("Connected to the device: %s",(_device_list[index].getName()).c_str());
+    for(int i =0; i<10; i++){
+        if(_device_list.size() == 0){
+            if(first_error)
+            {
+                ROS_WARN("No controller device found! Will retry every second");
+                first_error = false;
+            }
+            sleep(1.0);
+        }else //if(_device_list.size() == 1)
+        {
+            index = 0;
+            ROS_INFO("Connected to the device: %s",(_device_list[index].getName()).c_str());
+            break;
+        }
     }
+
     /* Currently ignore that we have multiple servo connected    
     else{
         for(auto device = _device_list.begin(); device != _device_list.end(); device++)
@@ -76,7 +86,7 @@ void ServoController::_ReadParameter()
 {
     ROS_INFO("*** PARAMETER SETTINGS ***");
 
-    _pvt_nh.param<std::string>("ControllerTopic", _sub_topic, "control_input");
+    _pvt_nh.param<std::string>("ControllerTopic", _sub_topic, "control");
 
     // Channel index for throttle 
     _pvt_nh.param("SteeringChannel", _steering_ch, -1);
@@ -127,12 +137,13 @@ void ServoController::_dynParamUpdate()
     _throttle_D = dynamic_params.throttle_D;
 }
 
-void ServoController::_subCallback(const rc_control_msgs::RC_Control& msg)
+void ServoController::_subCallback(const rc_control_msgs::RCControl& msg)
 {
     if(_running){
         if (_sub_command.getNumPublishers()>1)
         {
             ROS_ERROR_STREAM("Detected " << _sub_command.getNumPublishers()<< " publishers. Only 1 publisher is allowed. Going to brake.");
+            brake();
             return;
         }
 
@@ -184,18 +195,20 @@ void ServoController::natural()
 
 void ServoController::update(const ros::Time& time, const ros::Duration& period)
 {
-    _dynParamUpdate();
-    Commands curr_cmd = *(_command.readFromRT());
-    // ROS_INFO_STREAM("Receive control - Steer: "<<curr_cmd.steer
-    //                         <<" Throttle: "<<curr_cmd.throttle
-    //                         <<" Time: "<<curr_cmd.stamp);
-    const double dt = (time - curr_cmd.stamp).toSec();
-    
-    if (dt > _cmd_vel_timeout){
-        natural();
-        return;
+    if(_running){
+        _dynParamUpdate();
+        Commands curr_cmd = *(_command.readFromRT());
+        // ROS_INFO_STREAM("Receive control - Steer: "<<curr_cmd.steer
+        //                         <<" Throttle: "<<curr_cmd.throttle
+        //                         <<" Time: "<<curr_cmd.stamp);
+        const double dt = (time - curr_cmd.stamp).toSec();
+        
+        if (dt > _cmd_vel_timeout){
+            natural();
+            return;
+        }
+        
+        _device_list[_device_idx].setTarget(_steering_ch, _convertTarget(curr_cmd.steer, true));
+        _device_list[_device_idx].setTarget(_throttle_ch, _convertTarget(curr_cmd.throttle, false));
     }
-    
-    _device_list[_device_idx].setTarget(_steering_ch, _convertTarget(curr_cmd.steer, true));
-    _device_list[_device_idx].setTarget(_throttle_ch, _convertTarget(curr_cmd.throttle, false));
 }

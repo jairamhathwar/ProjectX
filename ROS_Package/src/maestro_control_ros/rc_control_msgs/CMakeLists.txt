@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
-  RC_Control.msg
+  RCControl.msg
 )
 
 generate_messages(

@@ -19,6 +19,8 @@ int main(int argc, char** argv)
     signal(SIGINT, signalHandler);
 
     ServoController controller(node, private_nh);
+    if(!controller.isRunning())
+        return 0;
 
     double freq;
     private_nh.getParam("frequency", freq);

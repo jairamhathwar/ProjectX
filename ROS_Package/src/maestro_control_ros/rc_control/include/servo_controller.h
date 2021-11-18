@@ -13,7 +13,7 @@
 #include <realtime_tools/realtime_buffer.h>
 
 // message
-#include <rc_control_msgs/RC_Control.h>
+#include <rc_control_msgs/RCControl.h>
 #include <algorithm>
 
 /* 
@@ -40,6 +40,9 @@ class ServoController{
         void natural();
 
         void brake();
+
+        bool isRunning(){ return _running;};
+
 
     // Private Variable
     private:    
@@ -109,7 +112,7 @@ class ServoController{
          * \brief controller input subscriber callback
          * \param msg Velocity command message (twist)
          */
-        void _subCallback(const rc_control_msgs::RC_Control& msg);
+        void _subCallback(const rc_control_msgs::RCControl& msg);
 
         /**
          * \brief Convert a percentage of input to the target of pwm output
