@@ -152,7 +152,7 @@ void ServoController::_subCallback(const rc_control_msgs::RCControl& msg)
         _command_struct.reverse = msg.reverse;
         _command_struct.stamp = ros::Time::now();
         _command.writeFromNonRT(_command_struct);
-        ROS_DEBUG_STREAM("Receive control - Steer: "<<_command_struct.steer
+        ROS_INFO_STREAM("Receive control - Steer: "<<_command_struct.steer
                             <<" Throttle: "<<_command_struct.throttle
                             <<" Time: "<<_command_struct.stamp);
     }
