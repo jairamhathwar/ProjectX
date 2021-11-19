@@ -67,28 +67,30 @@ class ServoController{
         // calibration parameters
         double _steering_C, _steering_L, _steering_R; // center, max left and max right steering input
         double _throttle_N, _throttle_D, _throttle_R; // netural, max forward and max reverse throttle input 
-        
+        bool _inverse_steer, _inverse_throttle;
         struct DynParam
         {
             double steering_C, steering_L, steering_R; // center, max left and max right steering input
             double throttle_N, throttle_D, throttle_R;
-            DynParam() : steering_C(6000), steering_L(4000), steering_R(8000),
-                        throttle_N(6000), throttle_D(8000), throttle_R(4000) {}
+            bool inverse_steer, inverse_throttle;
+            DynParam() : steering_C(0.0), steering_L(-1.0), steering_R(1.0),
+                        throttle_N(0.0), throttle_D(1.0), throttle_R(-1.0),
+                        inverse_steer(false), inverse_throttle(false) {}
         };
         realtime_tools::RealtimeBuffer<DynParam> _dynParam;
 
         // Output limits
-        double _steering_min, _steering_max;
-        double _throttle_min, _throttle_max;
+        int _steering_min, _steering_max;
+        int _throttle_min, _throttle_max;
 
         // Controller command
         struct Commands
         {
-            int throttle;
-            int steer;
+            double throttle;
+            double steer;
             bool reverse;
             ros::Time stamp;
-            Commands() : throttle(6000), steer(6000), reverse(false), stamp(0.0) {}
+            Commands() : throttle(0.0), steer(0.0), reverse(false), stamp(0.0) {}
         };
 
         realtime_tools::RealtimeBuffer<Commands> _command;
@@ -119,7 +121,8 @@ class ServoController{
          * \param percentage Input: double (-1 to 1)
          * \return pwm width with unit of 0.25us: int (4000 to 8000)
          */
-        int _convertTarget(double percentage, bool is_steer);
+        int _convertTargetThrottle(double percentage);
+        int _convertTargetSteering(double percentage);
 
         void _dynParamUpdate();
 

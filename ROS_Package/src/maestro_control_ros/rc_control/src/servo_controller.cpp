@@ -2,7 +2,7 @@
 
 
 ServoController::ServoController(ros::NodeHandle node, ros::NodeHandle private_nh):
-    _nh(node), _pvt_nh(private_nh), _running(false)
+    _nh(node), _pvt_nh(private_nh), _running(false), _cmd_vel_timeout(0.5)
 {
     // set dynamic reconfig
     _f = boost::bind(&ServoController::_dynParamCallback, this, _1, _2);
@@ -122,6 +122,9 @@ void ServoController::_dynParamCallback(rc_control::calibrationConfig &config, u
     dynamic_params.throttle_R = config.throttle_R;
     dynamic_params.throttle_D = config.throttle_D;
 
+    dynamic_params.inverse_steer = config.inverse_steer;
+    dynamic_params.inverse_throttle = config.inverse_throttle;
+
     _dynParam.writeFromNonRT(dynamic_params);
 }
 
@@ -135,6 +138,9 @@ void ServoController::_dynParamUpdate()
     _throttle_N = dynamic_params.throttle_N;
     _throttle_R = dynamic_params.throttle_R;
     _throttle_D = dynamic_params.throttle_D;
+
+    _inverse_steer = dynamic_params.inverse_steer;
+    _inverse_throttle = dynamic_params.inverse_throttle;
 }
 
 void ServoController::_subCallback(const rc_control_msgs::RCControl& msg)
@@ -146,50 +152,81 @@ void ServoController::_subCallback(const rc_control_msgs::RCControl& msg)
             brake();
             return;
         }
-
-        _command_struct.steer = _convertTarget(msg.steer, true);
-        _command_struct.throttle = _convertTarget(msg.throttle, false);
+        
+        _command_struct.steer = msg.steer;
+        _command_struct.throttle = msg.throttle;
         _command_struct.reverse = msg.reverse;
         _command_struct.stamp = ros::Time::now();
         _command.writeFromNonRT(_command_struct);
-        ROS_INFO_STREAM("Receive control - Steer: "<<_command_struct.steer
-                            <<" Throttle: "<<_command_struct.throttle
-                            <<" Time: "<<_command_struct.stamp);
+    
     }
 }
 
-int ServoController::_convertTarget(double percentage, bool is_steer)
+int ServoController::_convertTargetThrottle(double percentage)
 {
     /* 
     convert the percentage input (-100% - 100%) 
     to the intergral input of pluse width (in unit of 0.25us)
     */
-    double center = is_steer ? _steering_C : _throttle_N;
-    double low = is_steer ? _steering_L : _throttle_R;
-    double high = is_steer ? _steering_R : _throttle_D;
-    int min_input = is_steer ? _steering_min : _throttle_min;
-    int max_input = is_steer ? _steering_max : _throttle_max;
-    int input = int(std::max(low, std::min(high, (center+percentage)))*500+1500);
-    return std::max(min_input, std::min(input, max_input));
+   
+    if(_inverse_throttle)
+        percentage = -percentage;
+    double scaled_percentage;
+
+    // go forward (%>0) map from 0-1 to center to high
+    // go backward/brake (%<=0) map from -1-0 to low to center
+    if (percentage>0)         
+        scaled_percentage = percentage*(_throttle_D-_throttle_N)+_throttle_N;
+    else
+        scaled_percentage = percentage*(_throttle_N-_throttle_R)+_throttle_N;
+    
+    // scaled to the unit of 0.25us
+    int input = int((scaled_percentage*500.0+1500.0)*4.0); 
+
+    return std::max(_throttle_min, std::min(input, _throttle_max));
+}
+
+int ServoController::_convertTargetSteering(double percentage)
+{
+    /* 
+    convert the percentage input (-100% - 100%) 
+    to the intergral input of pluse width (in unit of 0.25us)
+    */
+    if (_inverse_steer)
+        percentage = -percentage;
+
+    double scaled_percentage;
+
+    // right turn (%>0) map from 0-1 to center to high
+    // left turn (%<=0) map from -1-0 to low to center
+    if (percentage>0)
+        scaled_percentage = percentage*(_steering_R-_steering_C)+_steering_C;
+    else
+        scaled_percentage = percentage*(_steering_C-_steering_L)+_steering_C;
+
+    // scaled to the unit of 0.25us
+    int input = int((scaled_percentage*500.0+1500.0)*4.0); 
+
+    return std::max(_steering_min, std::min(input, _steering_max));
 }
 
 void ServoController::brake()
 {
     if(_reverse)
     {
-        _device_list[_device_idx].setTarget(_steering_ch, _convertTarget(0, true));
-        _device_list[_device_idx].setTarget(_throttle_ch, _convertTarget(1, false));   
+        _device_list[_device_idx].setTarget(_steering_ch, _convertTargetSteering(0));
+        _device_list[_device_idx].setTarget(_throttle_ch, _convertTargetThrottle(1));   
     }else
     {   
-        _device_list[_device_idx].setTarget(_steering_ch, _convertTarget(0, true));
-        _device_list[_device_idx].setTarget(_throttle_ch, _convertTarget(-1, false));   
+        _device_list[_device_idx].setTarget(_steering_ch, _convertTargetSteering(0));
+        _device_list[_device_idx].setTarget(_throttle_ch, _convertTargetThrottle(-1));   
     }
 }
 
 void ServoController::natural()
 {
-    _device_list[_device_idx].setTarget(_steering_ch, _convertTarget(0, true));
-    _device_list[_device_idx].setTarget(_throttle_ch, _convertTarget(0, false));
+    _device_list[_device_idx].setTarget(_steering_ch, _convertTargetSteering(0));
+    _device_list[_device_idx].setTarget(_throttle_ch, _convertTargetThrottle(0));
 }
 
 
@@ -208,7 +245,7 @@ void ServoController::update(const ros::Time& time, const ros::Duration& period)
             return;
         }
         
-        _device_list[_device_idx].setTarget(_steering_ch, _convertTarget(curr_cmd.steer, true));
-        _device_list[_device_idx].setTarget(_throttle_ch, _convertTarget(curr_cmd.throttle, false));
+        _device_list[_device_idx].setTarget(_steering_ch, _convertTargetSteering(curr_cmd.steer));
+        _device_list[_device_idx].setTarget(_throttle_ch, _convertTargetThrottle(curr_cmd.throttle));
     }
 }
