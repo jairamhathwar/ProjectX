@@ -11,6 +11,7 @@ Internal Private Repo for the Princeton autonomous RC car
 2. Low-level Control - Trajectory Tracking
 - [Pure pursiit ](https://vinesmsuic.github.io/2020/09/29/robotics-purepersuit)
 - [MPCC](https://github.com/alexliniger/MPCC)
+- [iLQR]
 
 
 
