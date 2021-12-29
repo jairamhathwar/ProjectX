@@ -64,16 +64,15 @@ class TrajTrackingACADOS:
         # solver setting
         # set QP solver and integration
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
-        #ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
+        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' #'FULL_CONDENSING_QPOASES'
         self.ocp.solver_options.nlp_solver_type = "SQP"#"SQP_RTI" #
         self.ocp.solver_options.hessian_approx = "EXACT"
-        #self.ocp.solver_options.levenberg_marquardt = 0.1
+        self.ocp.solver_options.levenberg_marquardt = 0.1
         self.ocp.solver_options.integrator_type = "ERK"
         self.ocp.parameter_values = np.zeros(self.model.p.size()[0])
 
-        #self.ocp.solver_options.nlp_solver_step_length = 0.01
-        self.ocp.solver_options.nlp_solver_max_iter = 50
+        self.ocp.solver_options.nlp_solver_max_iter = 100
+        self.ocp.solver_options.qp_solver_iter_max = 100
         self.ocp.solver_options.tol = 1e-4
         #ocp.solver_options.print_level = 1
         # ocp.solver_options.nlp_solver_tol_comp = 1e-1
@@ -92,41 +91,48 @@ class TrajTrackingACADOS:
         self.acados_solver.set(0, "ubx", x_cur)
         status = self.acados_solver.solve()
         
-        x_solution = []
-        u_solution = []
+        x_sol = []
+        u_sol = []
         for stageidx in range(self.N):
-            x_solution.append(self.acados_solver.get(stageidx, 'x'))
-            u_solution.append(self.acados_solver.get(stageidx, 'u'))
+            x_sol.append(self.acados_solver.get(stageidx, 'x'))
+            u_sol.append(self.acados_solver.get(stageidx, 'u'))
         self.acados_solver.print_statistics()
-        x_solution = np.array(x_solution)
-        u_solution = np.array(u_solution)
-        print(x_solution)
-        #print(u_solution)
-        print(ref_traj.T)
-        plt.plot(x_solution[:,0], x_solution[:,1],'-.')
-        plt.plot(ref_traj[0,:], ref_traj[1,:], '-')
+        x_sol = np.array(x_sol)
+        u_sol = np.array(u_sol)
+        #print(x_sol)
+        # #print(u_solution)
+        #print(ref_traj.T)
+        fig, (ax1, ax2) = plt.subplots(1, 2)
+        ax1.plot(x_sol[:,0], x_sol[:,1],'-.')
+        ax1.plot(ref_traj[0,:], ref_traj[1,:], '.')
+        
+        ax2.plot(x_sol[:,3],'-')
+        ax2.plot(x_sol[:,4],'.')
+        ax2.plot(u_sol[:,0],'-.')
+        ax2.plot(u_sol[:,1],'--')
         plt.show()
-
+        return x_sol, u_sol
 
             
 
 if __name__ == '__main__':
 
-    Tf = 6
+    Tf = 2
     N = Tf*10
 
-    angle = np.linspace(0, np.pi/3, N)
+    angle = np.linspace(0, np.pi/6, N)
     r = 2
     
     x_ref = r*np.cos(angle)
     y_ref = r*np.sin(angle)
 
     psi_ref = angle + np.pi/2
-    vel_ref =r*np.pi/3/Tf*np.ones_like(angle)
+    vel_ref =r*np.pi/6/Tf*np.ones_like(angle)
 
     ref_traj = np.stack([x_ref, y_ref, psi_ref, vel_ref])
 
-    x_0 = np.array([2.1, -0.1, np.pi/2, 0, 0])
+
+    x_0 = np.array([1.9, 0.05, np.pi/1.8, 0.05, 0])
 
     v = 1
     # x_ref = np.linspace(0, v*Tf, N,endpoint=False)

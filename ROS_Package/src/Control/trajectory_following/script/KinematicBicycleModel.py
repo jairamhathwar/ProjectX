@@ -119,6 +119,7 @@ class KinematicBicycleModel:
         Q_pos = self.params['Q_pos']
         Q_psi = self.params['Q_psi']
         Q_vel = self.params['Q_vel']
+        Q_u = self.params['Q_u']
 
         # Reference Position, heading and speed
         pos_X_ref = SX.sym('pos_X_ref')
@@ -126,10 +127,8 @@ class KinematicBicycleModel:
         psi_ref = SX.sym('psi_ref')
         vel_ref = SX.sym('vel_ref')
 
-        # weight 
-        Q_pos = self.params["Q_pos"]
-        Q_psi = self.params["Q_psi"]
-        Q_vel = self.params["Q_vel"]
+
+
 
 
         # Assign reference and weight to the parameters
@@ -148,7 +147,8 @@ class KinematicBicycleModel:
         delta_vel = self.model.x[3] - vel_ref
 
         self.model.cost = delta_pos_x*Q_pos*delta_pos_x + delta_pos_y*Q_pos*delta_pos_y \
-            + delta_psi*Q_psi*delta_psi + delta_vel*Q_vel*delta_vel
+                + delta_psi*Q_psi*delta_psi + delta_vel*Q_vel*delta_vel \
+                + self.model.u[0]*Q_u*self.model.u[0] + self.model.u[1]*Q_u*self.model.u[1]
         
 
     def define_constraint(self):

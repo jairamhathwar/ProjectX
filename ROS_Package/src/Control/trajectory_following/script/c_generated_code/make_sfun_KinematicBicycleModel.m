@@ -87,15 +87,15 @@ input_note = strcat(input_note, num2str(i_in), ') ubx_0 - upper bound on x for s
                     ' size [5]\n ');
 i_in = i_in + 1;
 input_note = strcat(input_note, num2str(i_in), ') parameters - concatenated for all shooting nodes 0 to N+1,',...
-                    ' size [244]\n ');
+                    ' size [84]\n ');
 i_in = i_in + 1;
-input_note = strcat(input_note, num2str(i_in), ') lbx for shooting nodes 1 to N-1, size [118]\n ');
+input_note = strcat(input_note, num2str(i_in), ') lbx for shooting nodes 1 to N-1, size [38]\n ');
 i_in = i_in + 1;
-input_note = strcat(input_note, num2str(i_in), ') ubx for shooting nodes 1 to N-1, size [118]\n ');
+input_note = strcat(input_note, num2str(i_in), ') ubx for shooting nodes 1 to N-1, size [38]\n ');
 i_in = i_in + 1;
-input_note = strcat(input_note, num2str(i_in), ') lbu for shooting nodes 0 to N-1, size [120]\n ');
+input_note = strcat(input_note, num2str(i_in), ') lbu for shooting nodes 0 to N-1, size [40]\n ');
 i_in = i_in + 1;
-input_note = strcat(input_note, num2str(i_in), ') ubu for shooting nodes 0 to N-1, size [120]\n ');
+input_note = strcat(input_note, num2str(i_in), ') ubu for shooting nodes 0 to N-1, size [40]\n ');
 i_in = i_in + 1;
 
 fprintf(input_note)

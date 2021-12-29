@@ -621,7 +621,7 @@ int KinematicBicycleModel_acados_create_with_discretization(KinematicBicycleMode
     double nlp_solver_step_length = 1;
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "step_length", &nlp_solver_step_length);
 
-    double levenberg_marquardt = 0;
+    double levenberg_marquardt = 0.1;
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "levenberg_marquardt", &levenberg_marquardt);
 
     /* options QP solver */
@@ -631,7 +631,7 @@ int KinematicBicycleModel_acados_create_with_discretization(KinematicBicycleMode
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "qp_cond_N", &qp_solver_cond_N);
 
 
-    int qp_solver_iter_max = 50;
+    int qp_solver_iter_max = 100;
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "qp_iter_max", &qp_solver_iter_max);
     // set SQP specific options
     double nlp_solver_tol_stat = 0.0001;
@@ -646,7 +646,7 @@ int KinematicBicycleModel_acados_create_with_discretization(KinematicBicycleMode
     double nlp_solver_tol_comp = 0.0001;
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "tol_comp", &nlp_solver_tol_comp);
 
-    int nlp_solver_max_iter = 50;
+    int nlp_solver_max_iter = 100;
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "max_iter", &nlp_solver_max_iter);
 
     int initialize_t_slacks = 0;
@@ -840,7 +840,7 @@ void KinematicBicycleModel_acados_print_stats(KinematicBicycleModel_solver_capsu
     ocp_nlp_get(capsule->nlp_config, capsule->nlp_solver, "stat_m", &stat_m);
 
     
-    double stat[500];
+    double stat[1000];
     ocp_nlp_get(capsule->nlp_config, capsule->nlp_solver, "statistics", stat);
 
     int nrow = sqp_iter+1 < stat_m ? sqp_iter+1 : stat_m;
