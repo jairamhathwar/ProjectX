@@ -57,7 +57,7 @@ static const casadi_int casadi_s4[11] = {7, 1, 0, 7, 0, 1, 2, 3, 4, 5, 6};
 
 /* KinematicBicycleModel_cost_ext_cost_fun_jac:(i0[5],i1[2],i2[4])->(o0,o1[7]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
-  casadi_real a0, a1, a10, a11, a12, a2, a3, a4, a5, a6, a7, a8, a9;
+  casadi_real a0, a1, a10, a11, a12, a13, a14, a15, a2, a3, a4, a5, a6, a7, a8, a9;
   a0=100.;
   a1=arg[0]? arg[0][0] : 0;
   a2=arg[2]? arg[2][0] : 0;
@@ -87,18 +87,22 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   a9=(a9-a10);
   a10=casadi_sq(a9);
   a3=(a3+a10);
-  a10=5.0000000000000000e-01;
+  a10=1.0000000000000000e-02;
   a11=arg[1]? arg[1][0] : 0;
   a12=(a10*a11);
-  a12=(a12*a11);
-  a3=(a3+a12);
-  a12=arg[1]? arg[1][1] : 0;
-  a10=(a10*a12);
-  a10=(a10*a12);
-  a3=(a3+a10);
+  a13=(a12*a11);
+  a3=(a3+a13);
+  a13=arg[1]? arg[1][1] : 0;
+  a14=(a10*a13);
+  a15=(a14*a13);
+  a3=(a3+a15);
   if (res[0]!=0) res[0][0]=a3;
-  if (res[1]!=0) res[1][0]=a11;
-  if (res[1]!=0) res[1][1]=a12;
+  a11=(a10*a11);
+  a12=(a12+a11);
+  if (res[1]!=0) res[1][0]=a12;
+  a10=(a10*a13);
+  a14=(a14+a10);
+  if (res[1]!=0) res[1][1]=a14;
   a1=(a0*a1);
   a2=(a2+a1);
   if (res[1]!=0) res[1][2]=a2;

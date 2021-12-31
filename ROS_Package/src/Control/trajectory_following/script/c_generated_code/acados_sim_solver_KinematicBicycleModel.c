@@ -77,7 +77,7 @@ int KinematicBicycleModel_acados_sim_create(sim_solver_capsule * capsule)
     bool tmp_bool;
 
     
-    double Tsim = 0.1;
+    double Tsim = 0.05;
 
     
     // explicit ode
@@ -99,15 +99,6 @@ int KinematicBicycleModel_acados_sim_create(sim_solver_capsule * capsule)
     capsule->sim_expl_ode_fun_casadi->casadi_sparsity_out = &KinematicBicycleModel_expl_ode_fun_sparsity_out;
     capsule->sim_expl_ode_fun_casadi->casadi_work = &KinematicBicycleModel_expl_ode_fun_work;
     external_function_param_casadi_create(capsule->sim_expl_ode_fun_casadi, np);
-    capsule->sim_expl_ode_hess = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi));
-    // external_function_param_casadi impl_dae_jac_x_xdot_u_z;
-    capsule->sim_expl_ode_hess->casadi_fun = &KinematicBicycleModel_expl_ode_hess;
-    capsule->sim_expl_ode_hess->casadi_work = &KinematicBicycleModel_expl_ode_hess_work;
-    capsule->sim_expl_ode_hess->casadi_sparsity_in = &KinematicBicycleModel_expl_ode_hess_sparsity_in;
-    capsule->sim_expl_ode_hess->casadi_sparsity_out = &KinematicBicycleModel_expl_ode_hess_sparsity_out;
-    capsule->sim_expl_ode_hess->casadi_n_in = &KinematicBicycleModel_expl_ode_hess_n_in;
-    capsule->sim_expl_ode_hess->casadi_n_out = &KinematicBicycleModel_expl_ode_hess_n_out;
-    external_function_param_casadi_create(capsule->sim_expl_ode_hess, np);
 
     
 
@@ -158,8 +149,6 @@ int KinematicBicycleModel_acados_sim_create(sim_solver_capsule * capsule)
                  "expl_vde_for", capsule->sim_forw_vde_casadi);
     KinematicBicycleModel_sim_config->model_set(KinematicBicycleModel_sim_in->model,
                  "expl_ode_fun", capsule->sim_expl_ode_fun_casadi);
-    KinematicBicycleModel_sim_config->model_set(KinematicBicycleModel_sim_in->model,
-                "expl_ode_hess", capsule->sim_expl_ode_hess);
 
     // sim solver
     sim_solver *KinematicBicycleModel_sim_solver = sim_solver_create(KinematicBicycleModel_sim_config,
@@ -235,7 +224,6 @@ int KinematicBicycleModel_acados_sim_free(sim_solver_capsule *capsule)
     // free external function
     external_function_param_casadi_free(capsule->sim_forw_vde_casadi);
     external_function_param_casadi_free(capsule->sim_expl_ode_fun_casadi);
-    external_function_param_casadi_free(capsule->sim_expl_ode_hess);
 
     return 0;
 }
@@ -253,7 +241,6 @@ int KinematicBicycleModel_acados_sim_update_params(sim_solver_capsule *capsule, 
     }
     capsule->sim_forw_vde_casadi[0].set_param(capsule->sim_forw_vde_casadi, p);
     capsule->sim_expl_ode_fun_casadi[0].set_param(capsule->sim_expl_ode_fun_casadi, p);
-    capsule->sim_expl_ode_hess[0].set_param(capsule->sim_expl_ode_hess, p);
 
     return status;
 }

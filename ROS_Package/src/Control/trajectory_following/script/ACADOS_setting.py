@@ -4,6 +4,7 @@ from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 from KinematicBicycleModel import KinematicBicycleModel
 import numpy as np
 from matplotlib import pyplot as plt
+import time
 
 class TrajTrackingACADOS:
     def __init__(self, Tf, N, model_params = "modelparams.yaml"):
@@ -64,9 +65,9 @@ class TrajTrackingACADOS:
         # solver setting
         # set QP solver and integration
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' #'FULL_CONDENSING_QPOASES'
+        self.ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES' # 'PARTIAL_CONDENSING_HPIPM' 
         self.ocp.solver_options.nlp_solver_type = "SQP"#"SQP_RTI" #
-        self.ocp.solver_options.hessian_approx = "EXACT"
+        self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
         self.ocp.solver_options.levenberg_marquardt = 0.1
         self.ocp.solver_options.integrator_type = "ERK"
         self.ocp.parameter_values = np.zeros(self.model.p.size()[0])
@@ -81,6 +82,7 @@ class TrajTrackingACADOS:
 
 
     def solve(self, ref_traj, x_cur):
+        t0 = time.time()
         for stageidx  in range(self.N):
             p_val = ref_traj[:,stageidx]
             self.acados_solver.set(stageidx, "p", p_val)
@@ -90,7 +92,8 @@ class TrajTrackingACADOS:
         self.acados_solver.set(0, "lbx", x_cur)
         self.acados_solver.set(0, "ubx", x_cur)
         status = self.acados_solver.solve()
-        
+        t1 = time.time()
+        print(t1-t0)
         x_sol = []
         u_sol = []
         for stageidx in range(self.N):
@@ -117,8 +120,8 @@ class TrajTrackingACADOS:
 
 if __name__ == '__main__':
 
-    Tf = 2
-    N = Tf*10
+    Tf = 1
+    N = Tf*20
 
     angle = np.linspace(0, np.pi/6, N)
     r = 2
@@ -132,7 +135,7 @@ if __name__ == '__main__':
     ref_traj = np.stack([x_ref, y_ref, psi_ref, vel_ref])
 
 
-    x_0 = np.array([1.9, 0.05, np.pi/1.8, 0.05, 0])
+    x_0 = np.array([1.95, -0.05, 0.5, 0, 0])
 
     v = 1
     # x_ref = np.linspace(0, v*Tf, N,endpoint=False)

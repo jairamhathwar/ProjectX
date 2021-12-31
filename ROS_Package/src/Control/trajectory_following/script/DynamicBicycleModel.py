@@ -38,9 +38,19 @@ class KinematicBicycleModel:
         C_m2 = self.params['C_m2']
         C_roll = self.params['C_roll']
         C_d = self.params['C_d']
+
+        # tire coefficient
+        B_f = self.params['B_f']
+        B_r = self.params['B_r']
+        C_f = self.params['C_f']
+        C_r = self.params['C_r']
+        D_f = self.params['D_f']
+        D_r = self.params['D_r']
+
         
         # weight
         m = self.params['m']
+        Iz = self.params['Iz']
 
         '''
         Step 2:
@@ -56,7 +66,7 @@ class KinematicBicycleModel:
                 delta_dot = delta_dot
 
             with:
-                accel = [(C_m1-C_m2*V*cos(beta))*d-C_roll-C_d*(V*cos(beta))^2]/m
+                accel = [(C_m1-C_m2*V*cos(beta))*d-C_r-C_d*(V*cos(beta))^2]/m
                 beta = atan(tan(delta)*l_r/(l_f+l_r))
         '''
 
@@ -69,11 +79,18 @@ class KinematicBicycleModel:
         # heading
         psi = SX.sym('psi')
         psi_dot = SX.sym('psi_dot')
-        
-        # speed
-        vel = SX.sym('vel')
-        vel_dot = SX.sym('vel_dot')
 
+        # angular velocity        
+        omega = SX.sym('omega')
+        omega_dot = SX.sym('omega_dot')
+
+        # speed
+        Vx = SX.sym('Vx')
+        Vx_dot = SX.sym('Vx_dot')
+
+        Vy = SX.sym('Vy')
+        Vy_dot = SX.sym('Vy_dot')
+        
         # motor duty cycle
         d = SX.sym('d')
 
@@ -82,22 +99,29 @@ class KinematicBicycleModel:
         delta_dot = SX.sym('delta_dot')
 
         # slip angle
-        beta = casadi.atan(casadi.tan(delta)*l_r/(l_f+l_r))
-        vel_x = vel*casadi.cos(beta)
-        
+        alpha_f = delta-casadi.atan((omega*l_f+Vy)/Vx)
+        alpha_r = casadi.atan((omega*l_r-Vy)/Vx)
+
+        # Tire force
+        F_x = ((C_m1-C_m2*Vx)*d-C_r-C_d*Vx*Vx)/(2*m)
+        F_fy = D_f*casadi.sin(C_f*casadi.arctan(B_f*alpha_f))
+        F_ry = D_r*casadi.sin(C_r*casadi.arctan(B_r*alpha_r))
+
         # state vector
-        x = casadi.vertcat(pos_X, pos_Y, psi, vel, delta)
-        x_dot = casadi.vertcat(pos_X_dot, pos_Y_dot, psi_dot, vel_dot, delta_dot)
+        x = casadi.vertcat(pos_X, pos_Y, Vx, Vy, psi, omega, delta)
+        x_dot = casadi.vertcat(pos_X_dot, pos_Y_dot, Vx_dot, Vy_dot, psi_dot, omega_dot, delta_dot)
         
         # control input
         u = casadi.vertcat(d, delta_dot)
 
         # system dynamics
         f_expl = casadi.vertcat(
-            vel*casadi.cos(psi+beta), # X_dot
-            vel*casadi.sin(psi+beta), # Y_dot
-            vel/l_r*casadi.sin(beta), # psi_dot
-            ((C_m1-C_m2*vel_x)*d-C_roll-C_d*vel_x*vel_x)/m, # accel
+            Vx*casadi.cos(psi)-Vy*casadi.sin(psi), # X_dot
+            Vx*casadi.sin(psi)+Vy*casadi.cos(psi), # Y_dot
+            (F_x+F_x*casadi.cos(delta)-F_fy*casadi.sin(delta)+m*Vy*omega)/m, # Vx_dot
+            (F_ry+F_x*casadi.sin(delta)+F_fy*casadi.cos(delta)-m*Vy*omega)/m, # Vy_dot
+            omega,
+            ((F_fy*casadi.cos(delta)+F_x*casadi.sin(delta))*l_f-F_ry*l_r)/Iz,
             delta_dot
         )
 

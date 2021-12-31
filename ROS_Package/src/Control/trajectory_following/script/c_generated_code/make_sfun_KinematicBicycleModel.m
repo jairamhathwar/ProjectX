@@ -34,7 +34,6 @@
 SOURCES = { ...
             'KinematicBicycleModel_model/KinematicBicycleModel_expl_ode_fun.c', ...
             'KinematicBicycleModel_model/KinematicBicycleModel_expl_vde_forw.c',...
-            'KinematicBicycleModel_model/KinematicBicycleModel_expl_ode_hess.c',...
             'KinematicBicycleModel_cost/KinematicBicycleModel_cost_ext_cost_0_fun.c',...
             'KinematicBicycleModel_cost/KinematicBicycleModel_cost_ext_cost_0_fun_jac.c',...
             'KinematicBicycleModel_cost/KinematicBicycleModel_cost_ext_cost_0_fun_jac_hess.c',...
@@ -53,6 +52,8 @@ INCS = {['-I', fullfile(INC_PATH, 'blasfeo', 'include')], ...
         ['-I', fullfile(INC_PATH)]};
 
 
+INCS{end+1} = ['-I', fullfile(INC_PATH, 'qpOASES_e')];
+
 
 CFLAGS = 'CFLAGS=$CFLAGS';
 LDFLAGS = 'LDFLAGS=$LDFLAGS';
@@ -60,12 +61,16 @@ COMPFLAGS = 'COMPFLAGS=$COMPFLAGS';
 COMPDEFINES = 'COMPDEFINES=$COMPDEFINES';
 
 
+CFLAGS = [ CFLAGS, ' -DACADOS_WITH_QPOASES ' ];
+COMPDEFINES = [ COMPDEFINES, ' -DACADOS_WITH_QPOASES ' ];
 
 LIB_PATH = ['-L', fullfile('/home/zixu/Data/Git_Repo/acados/lib')];
 
 LIBS = {'-lacados', '-lhpipm', '-lblasfeo'};
 
 % acados linking libraries and flags
+    
+LIBS{end+1} = '-lqpOASES_e';
     
 
 mex('-v', '-O', CFLAGS, LDFLAGS, COMPFLAGS, COMPDEFINES, INCS{:}, ...

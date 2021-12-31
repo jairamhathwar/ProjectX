@@ -153,7 +153,7 @@ int KinematicBicycleModel_acados_create_with_discretization(KinematicBicycleMode
     nlp_solver_plan->nlp_solver = SQP;
     
 
-    nlp_solver_plan->ocp_qp_solver_plan.qp_solver = PARTIAL_CONDENSING_HPIPM;
+    nlp_solver_plan->ocp_qp_solver_plan.qp_solver = FULL_CONDENSING_QPOASES;
 
     nlp_solver_plan->nlp_cost[0] = EXTERNAL;
     for (int i = 1; i < N; i++)
@@ -310,16 +310,6 @@ int KinematicBicycleModel_acados_create_with_discretization(KinematicBicycleMode
         capsule->expl_ode_fun[i].casadi_work = &KinematicBicycleModel_expl_ode_fun_work;
         external_function_param_casadi_create(&capsule->expl_ode_fun[i], 4);
     }
-    capsule->hess_vde_casadi = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
-    for (int i = 0; i < N; i++) {
-        capsule->hess_vde_casadi[i].casadi_fun = &KinematicBicycleModel_expl_ode_hess;
-        capsule->hess_vde_casadi[i].casadi_n_in = &KinematicBicycleModel_expl_ode_hess_n_in;
-        capsule->hess_vde_casadi[i].casadi_n_out = &KinematicBicycleModel_expl_ode_hess_n_out;
-        capsule->hess_vde_casadi[i].casadi_sparsity_in = &KinematicBicycleModel_expl_ode_hess_sparsity_in;
-        capsule->hess_vde_casadi[i].casadi_sparsity_out = &KinematicBicycleModel_expl_ode_hess_sparsity_out;
-        capsule->hess_vde_casadi[i].casadi_work = &KinematicBicycleModel_expl_ode_hess_work;
-        external_function_param_casadi_create(&capsule->hess_vde_casadi[i], 4);
-    }
 
 
     // external cost
@@ -409,7 +399,7 @@ int KinematicBicycleModel_acados_create_with_discretization(KinematicBicycleMode
     if (new_time_steps) {
         KinematicBicycleModel_acados_update_time_steps(capsule, N, new_time_steps);
     } else {// all time_steps are identical
-        double time_step = 0.1;
+        double time_step = 0.05;
         for (int i = 0; i < N; i++)
         {
             ocp_nlp_in_set(nlp_config, nlp_dims, nlp_in, i, "Ts", &time_step);
@@ -422,7 +412,6 @@ int KinematicBicycleModel_acados_create_with_discretization(KinematicBicycleMode
     {
         ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i, "expl_vde_forw", &capsule->forw_vde_casadi[i]);
         ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i, "expl_ode_fun", &capsule->expl_ode_fun[i]);
-        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i, "expl_ode_hess", &capsule->hess_vde_casadi[i]);
     
     }
 
@@ -575,20 +564,6 @@ int KinematicBicycleModel_acados_create_with_discretization(KinematicBicycleMode
     capsule->nlp_opts = ocp_nlp_solver_opts_create(nlp_config, nlp_dims);
 
 
-    bool nlp_solver_exact_hessian = true;
-    // TODO: this if should not be needed! however, calling the setter with false leads to weird behavior. Investigate!
-    if (nlp_solver_exact_hessian)
-    {
-        ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "exact_hess", &nlp_solver_exact_hessian);
-    }
-    int exact_hess_dyn = 1;
-    ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "exact_hess_dyn", &exact_hess_dyn);
-
-    int exact_hess_cost = 1;
-    ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "exact_hess_cost", &exact_hess_cost);
-
-    int exact_hess_constr = 1;
-    ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "exact_hess_constr", &exact_hess_constr);
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "globalization", "fixed_step");
 
     // set collocation type (relevant for implicit integrators)
@@ -625,11 +600,6 @@ int KinematicBicycleModel_acados_create_with_discretization(KinematicBicycleMode
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "levenberg_marquardt", &levenberg_marquardt);
 
     /* options QP solver */
-    int qp_solver_cond_N;
-    // NOTE: there is no condensing happening here!
-    qp_solver_cond_N = N;
-    ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "qp_cond_N", &qp_solver_cond_N);
-
 
     int qp_solver_iter_max = 100;
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "qp_iter_max", &qp_solver_iter_max);
@@ -732,7 +702,6 @@ int KinematicBicycleModel_acados_update_params(KinematicBicycleModel_solver_caps
     {
         capsule->forw_vde_casadi[stage].set_param(capsule->forw_vde_casadi+stage, p);
         capsule->expl_ode_fun[stage].set_param(capsule->expl_ode_fun+stage, p);
-        capsule->hess_vde_casadi[stage].set_param(capsule->hess_vde_casadi+stage, p);
     
 
         // constraints
@@ -797,11 +766,9 @@ int KinematicBicycleModel_acados_free(KinematicBicycleModel_solver_capsule * cap
     {
         external_function_param_casadi_free(&capsule->forw_vde_casadi[i]);
         external_function_param_casadi_free(&capsule->expl_ode_fun[i]);
-        external_function_param_casadi_free(&capsule->hess_vde_casadi[i]);
     }
     free(capsule->forw_vde_casadi);
     free(capsule->expl_ode_fun);
-    free(capsule->hess_vde_casadi);
 
     // cost
     external_function_param_casadi_free(&capsule->ext_cost_0_fun);
