@@ -13,15 +13,16 @@
             1
         ],
         "idxbx": [
-            3,
-            4
+            6
         ],
         "idxbx_0": [
             0,
             1,
             2,
             3,
-            4
+            4,
+            5,
+            6
         ],
         "idxbx_e": [],
         "idxbxe_0": [
@@ -29,7 +30,9 @@
             1,
             2,
             3,
-            4
+            4,
+            5,
+            6
         ],
         "idxsbu": [],
         "idxsbx": [],
@@ -45,10 +48,11 @@
             -2.0
         ],
         "lbx": [
-            -1.0,
             -0.4
         ],
         "lbx_0": [
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -58,7 +62,9 @@
         "lbx_e": [],
         "lg": [],
         "lg_e": [],
-        "lh": [],
+        "lh": [
+            -1
+        ],
         "lh_e": [],
         "lphi": [],
         "lphi_e": [],
@@ -76,10 +82,11 @@
             2
         ],
         "ubx": [
-            5.0,
             0.4
         ],
         "ubx_0": [
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -89,7 +96,9 @@
         "ubx_e": [],
         "ug": [],
         "ug_e": [],
-        "uh": [],
+        "uh": [
+            5
+        ],
         "uh_e": [],
         "uphi": [],
         "uphi_e": [],
@@ -135,13 +144,13 @@
     "dims": {
         "N": 20,
         "nbu": 2,
-        "nbx": 2,
-        "nbx_0": 5,
+        "nbx": 1,
+        "nbx_0": 7,
         "nbx_e": 0,
-        "nbxe_0": 5,
+        "nbxe_0": 7,
         "ng": 0,
         "ng_e": 0,
-        "nh": 0,
+        "nh": 1,
         "nh_e": 0,
         "np": 4,
         "nphi": 0,
@@ -160,7 +169,7 @@
         "nsphi": 0,
         "nsphi_e": 0,
         "nu": 2,
-        "nx": 5,
+        "nx": 7,
         "ny": 0,
         "ny_0": 0,
         "ny_e": 0,
@@ -176,7 +185,7 @@
             "nontrivial_f_LO": 1,
             "purely_linear": 0
         },
-        "name": "KinematicBicycleModel"
+        "name": "DynamicBicycleModel"
     },
     "parameter_values": [
         0.0,
@@ -234,7 +243,7 @@
         "exact_hess_dyn": 1,
         "ext_cost_num_hess": 0,
         "globalization": "FIXED_STEP",
-        "hessian_approx": "GAUSS_NEWTON",
+        "hessian_approx": "EXACT",
         "initialize_t_slacks": 0,
         "integrator_type": "ERK",
         "levenberg_marquardt": 0.1,
@@ -242,13 +251,13 @@
         "model_external_shared_lib_name": null,
         "nlp_solver_max_iter": 100,
         "nlp_solver_step_length": 1.0,
-        "nlp_solver_tol_comp": 0.0001,
-        "nlp_solver_tol_eq": 0.0001,
-        "nlp_solver_tol_ineq": 0.0001,
-        "nlp_solver_tol_stat": 0.0001,
+        "nlp_solver_tol_comp": 0.001,
+        "nlp_solver_tol_eq": 0.001,
+        "nlp_solver_tol_ineq": 0.001,
+        "nlp_solver_tol_stat": 0.001,
         "nlp_solver_type": "SQP",
         "print_level": 0,
-        "qp_solver": "FULL_CONDENSING_QPOASES",
+        "qp_solver": "PARTIAL_CONDENSING_HPIPM",
         "qp_solver_cond_N": null,
         "qp_solver_iter_max": 100,
         "qp_solver_tol_comp": null,

@@ -182,3 +182,8 @@ class KinematicBicycleModel:
         self.constraints.idxbu = np.array([0,1])
         self.constraints.lbu = np.array([d_min, deltadot_min])
         self.constraints.ubu = np.array([d_max, deltadot_max])
+
+        # non-linear constraints
+        self.constraints.con_h_expr = None
+        self.constraints.lh = np.array([])
+        self.constraints.uh = np.array([])

@@ -8,16 +8,16 @@ l_r: 0.033 #[m]
 Iz:  0.00006 #[kg*m^3]
 
 #pajecka and motor coefficients
-Bf: 2.58
-Br: 3.38
-Cf: 1.2
-Cr: 1.29
+B_f: 2.58
+B_r: 3.38
+C_f: 1.2
+C_r: 1.29
 C_m1: 0.287
 C_m2: 0.0545
 C_roll: 0.03
 C_d: 0.001
-Df: 0.17
-Dr: 0.19
+D_f: 0.17
+D_r: 0.19
 
 # box constraints
 # velocity
@@ -38,5 +38,5 @@ d_max: 1
 # Weight
 Q_pos: 100.0
 Q_psi: 10.0
-Q_vel: 1.0
+Q_vel: 0.5
 Q_u: 0.01

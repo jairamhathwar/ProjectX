@@ -2,6 +2,7 @@ import casadi
 from casadi import SX
 from acados_template import AcadosModel, AcadosOcp, AcadosOcpSolver
 from KinematicBicycleModel import KinematicBicycleModel
+from DynamicBicycleModel import DynamicBicycleModel
 import numpy as np
 from matplotlib import pyplot as plt
 import time
@@ -9,7 +10,7 @@ import time
 class TrajTrackingACADOS:
     def __init__(self, Tf, N, model_params = "modelparams.yaml"):
         
-        bicycle_model = KinematicBicycleModel(model_params)
+        bicycle_model = DynamicBicycleModel(model_params)
         self.model = bicycle_model.model
         self.constraints = bicycle_model.constraints
 
@@ -47,7 +48,7 @@ class TrajTrackingACADOS:
         self.acados_model.cost_expr_ext_cost = self.model.cost
         self.ocp.cost.cost_type = "EXTERNAL"
         
-        self.ocp.model = self.acados_model
+        
 
         # set constraint
         self.ocp.constraints.idxbu = self.constraints.idxbu
@@ -58,23 +59,29 @@ class TrajTrackingACADOS:
         self.ocp.constraints.lbx = self.constraints.lbx
         self.ocp.constraints.ubx = self.constraints.ubx
 
+        self.acados_model.con_h_expr = self.constraints.con_h_expr
+        self.ocp.constraints.lh = self.constraints.lh
+        self.ocp.constraints.uh = self.constraints.uh
+
         self.ocp.constraints.x0 = self.constraints.x0
 
         self.ocp.dims.N = self.N
 
+        self.ocp.model = self.acados_model
+
         # solver setting
         # set QP solver and integration
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES' # 'PARTIAL_CONDENSING_HPIPM' 
+        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'#'FULL_CONDENSING_QPOASES'
         self.ocp.solver_options.nlp_solver_type = "SQP"#"SQP_RTI" #
-        self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
+        self.ocp.solver_options.hessian_approx = "EXACT"
         self.ocp.solver_options.levenberg_marquardt = 0.1
         self.ocp.solver_options.integrator_type = "ERK"
         self.ocp.parameter_values = np.zeros(self.model.p.size()[0])
 
         self.ocp.solver_options.nlp_solver_max_iter = 100
         self.ocp.solver_options.qp_solver_iter_max = 100
-        self.ocp.solver_options.tol = 1e-4
+        self.ocp.solver_options.tol = 1e-3
         #ocp.solver_options.print_level = 1
         # ocp.solver_options.nlp_solver_tol_comp = 1e-1
 
@@ -135,16 +142,16 @@ if __name__ == '__main__':
     ref_traj = np.stack([x_ref, y_ref, psi_ref, vel_ref])
 
 
-    x_0 = np.array([1.95, -0.05, 0.5, 0, 0])
+    x_0 = np.array([1.98, -0.02, vel_ref[0]*0.98, 0, np.pi/2, 0.1, 0])
 
-    v = 1
+    # v = 1
     # x_ref = np.linspace(0, v*Tf, N,endpoint=False)
     # y_ref = np.zeros_like(x_ref)
     # psi_ref = np.zeros_like(x_ref)
     # v_ref = np.ones_like(x_ref)*v
 
     # ref_traj = np.stack([x_ref, y_ref, psi_ref, v_ref])
-    # x_0 = np.array([0, 0, 0 , 0, 0])
+    # x_0 = np.array([0,0,1,0,0,0,0])
 
     ocp = TrajTrackingACADOS(Tf, N)
     ocp.solve(ref_traj, x_0)
