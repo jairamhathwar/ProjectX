@@ -1,33 +1,30 @@
 import casadi
 from casadi import SX
-import yaml
 import numpy as np
+import yaml
+from traj_tracking_base import TrajTrackingBase
 
-class DynamicBicycleModel:
-    def __init__(self, params_file):
-        # System Dynamics of Kinematic Bicycle Model
-        self.model = casadi.types.SimpleNamespace()
-        self.model.name = 'DynamicBicycleModel'
 
-        # Constraints of Kinematic Bicycle Model
-        self.constraints = casadi.types.SimpleNamespace()
-
-        # Systems specific parameters for the Kinematic Bicycle Model
-        # Load parameters from YAML file
+class TrajTrackingDyn(TrajTrackingBase):
+    def __init__(self, Tf, N, params_file = 'modelparams.yaml'):
+        """
+        Base Class of the trajectory tracking controller using ACADOS
+        Input: 
+            Tf - Time Horizon
+            N - Number of discrete step in the time Horizon
+        """
+        super().__init__(Tf, N)
+        
         with open(params_file) as file:
             self.params = yaml.load(file, Loader= yaml.FullLoader)
+        self.acados_model.name = "traj_tracking_dyn"
+        self.ACADOS_setup()
         
-
-        # Define system dynamics
-        self.define_sys_dyn()
-        self.define_cost_func()
-        self.define_constraint()
-
+        
     def define_sys_dyn(self):
         '''
         This function defines the trajectroy tracking controller with the kinematic bicycle model
         '''
-                
         # Load system parameters
         # chassis length
         l_f = self.params['l_f']
@@ -131,13 +128,53 @@ class DynamicBicycleModel:
             delta_dot
         )
 
-        self.model.x = x
-        self.model.xdot = x_dot
-        self.model.u = u
-        self.model.f_expl_expr = f_expl
-        self.model.f_impl_expr = x_dot - f_expl
+        self.acados_model.x = x
+        self.acados_model.xdot = x_dot
+        self.acados_model.u = u
+        self.acados_model.f_expl_expr = f_expl
+        self.acados_model.f_impl_expr = x_dot - f_expl
 
-    def define_cost_func(self):
+    def define_constrint(self):
+        ''' 
+        Define ocp.constraints for the optimal control problem
+        '''
+
+        # State Constraint
+        # initial constraint
+        self.ocp.constraints.x0 = np.zeros(7)
+
+        #State: [X, Y, Vx, Vy, psi: heading, omega: yaw rate, delta: steering angle]
+        v_min = self.params['v_min']
+        v_max = self.params['v_max']
+
+        delta_min = self.params['delta_min']
+        delta_max = self.params['delta_max']
+
+        self.ocp.constraints.idxbx = np.array([6])
+        self.ocp.constraints.lbx = np.array([delta_min])
+        self.ocp.constraints.ubx = np.array([delta_max])
+
+        # Control input ocp.constraints
+        # Control: [d: motor duty cycle, delta_dot: steering rate]
+
+        d_min = self.params['d_min']
+        d_max = self.params['d_max']
+
+        deltadot_min = self.params['deltadot_min']  # minimum steering angle cahgne[rad/s]
+        deltadot_max = self.params['deltadot_max']  # maximum steering angle cahgne[rad/s]
+
+        self.ocp.constraints.idxbu = np.array([0,1])
+        self.ocp.constraints.lbu = np.array([d_min, deltadot_min])
+        self.ocp.constraints.ubu = np.array([d_max, deltadot_max])
+
+        # non-linear ocp.constraints
+        self.acados_model.con_h_expr = casadi.vertcat(
+                self.acados_model.x[2]**2+self.acados_model.x[3]**2
+            )
+        self.ocp.constraints.lh = np.array([v_min])
+        self.ocp.constraints.uh = np.array([v_max])
+
+    def define_cost(self):
         '''
         Define Cost function of OCP 
         Consider a simple L2 cost for the state w.r.t to the reference trajectory
@@ -165,52 +202,48 @@ class DynamicBicycleModel:
                 vel_ref
             )
 
-        self.model.p = p
+        self.acados_model.p = p
 
-        delta_pos_x = self.model.x[0] - pos_X_ref
-        delta_pos_y = self.model.x[1] - pos_Y_ref
-        delta_psi = casadi.mod((self.model.x[4] - psi_ref+np.pi/2),2*np.pi) - np.pi/2
-        delta_vel = self.model.x[2] - vel_ref
+        delta_pos_x = self.acados_model.x[0] - pos_X_ref
+        delta_pos_y = self.acados_model.x[1] - pos_Y_ref
+        delta_psi = casadi.mod((self.acados_model.x[4] - psi_ref+np.pi/2),2*np.pi) - np.pi/2
+        delta_vel = self.acados_model.x[2] - vel_ref
 
-        self.model.cost = delta_pos_x*Q_pos*delta_pos_x + delta_pos_y*Q_pos*delta_pos_y \
-                + self.model.u[0]*Q_u*self.model.u[0] + self.model.u[1]*Q_u*self.model.u[1] \
+        self.acados_model.cost_expr_ext_cost = delta_pos_x*Q_pos*delta_pos_x + delta_pos_y*Q_pos*delta_pos_y \
+                + self.acados_model.u[0]*Q_u*self.acados_model.u[0] + self.acados_model.u[1]*Q_u*self.acados_model.u[1] \
                 + delta_psi*Q_psi*delta_psi + delta_vel*Q_vel*delta_vel
+                
+        self.ocp.cost.cost_type = "EXTERNAL"
         
 
-    def define_constraint(self):
-        ''' 
-        Define Constraints for the optimal control problem
-        '''
+    
+if __name__ == '__main__':
 
-        # State Constraint
-        # initial constraint
-        self.constraints.x0 = np.zeros(7)
+    Tf = 1
+    N = Tf*20
 
-        #State: [X, Y, Vx, Vy, psi: heading, omega: yaw rate, delta: steering angle]
-        v_min = self.params['v_min']
-        v_max = self.params['v_max']
+    angle = np.linspace(0, np.pi/6, N)
+    r = 2
+    
+    x_ref = r*np.cos(angle)
+    y_ref = r*np.sin(angle)
 
-        delta_min = self.params['delta_min']
-        delta_max = self.params['delta_max']
+    psi_ref = angle + np.pi/2
+    vel_ref =r*np.pi/6/Tf*np.ones_like(angle)
 
-        self.constraints.idxbx = np.array([6])
-        self.constraints.lbx = np.array([delta_min])
-        self.constraints.ubx = np.array([delta_max])
+    ref_traj = np.stack([x_ref, y_ref, psi_ref, vel_ref])
 
-        # Control input constraints
-        # Control: [d: motor duty cycle, delta_dot: steering rate]
 
-        d_min = self.params['d_min']
-        d_max = self.params['d_max']
+    x_0 = np.array([1.98, -0.02,  vel_ref[0]*0.98, 0, np.pi/2, 0, 0])
 
-        deltadot_min = self.params['deltadot_min']  # minimum steering angle cahgne[rad/s]
-        deltadot_max = self.params['deltadot_max']  # maximum steering angle cahgne[rad/s]
+    # v = 1
+    # x_ref = np.linspace(0, v*Tf, N,endpoint=False)
+    # y_ref = np.zeros_like(x_ref)
+    # psi_ref = np.zeros_like(x_ref)
+    # v_ref = np.ones_like(x_ref)*v
 
-        self.constraints.idxbu = np.array([0,1])
-        self.constraints.lbu = np.array([d_min, deltadot_min])
-        self.constraints.ubu = np.array([d_max, deltadot_max])
+    # ref_traj = np.stack([x_ref, y_ref, psi_ref, v_ref])
+    # x_0 = np.array([0,0,1,0,0,0,0])
 
-        # non-linear constraints
-        self.constraints.con_h_expr = casadi.vertcat(self.model.x[2]**2+self.model.x[3]**2)
-        self.constraints.lh = np.array([v_min])
-        self.constraints.uh = np.array([v_max])
+    ocp = TrajTrackingDyn(Tf, N)
+    ocp.solve(ref_traj, x_0)
