@@ -20,7 +20,7 @@ wget https://bootstrap.pypa.io/get-pip.py
 sudo -H python3 get-pip.py
 rm get-pip*
 
-sudo -H pip3 install matplotlib scipy numpy virtualenv
+sudo -H pip3 install matplotlib scipy numpy virtualenv pyyaml
 
 # install jetson stats
 sudo -H pip install -U jetson-stats

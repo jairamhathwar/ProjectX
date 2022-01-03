@@ -51,10 +51,10 @@ class TrajTrackingBase(ABC):
         # set QP solver and integration
         self.ocp.dims.N = self.N
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'#'FULL_CONDENSING_QPOASES'#
+        self.ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'#'PARTIAL_CONDENSING_HPIPM'#
         self.ocp.solver_options.nlp_solver_type = "SQP"#"SQP_RTI" #
         self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
-        self.ocp.solver_options.levenberg_marquardt = 0.01
+        #self.ocp.solver_options.levenberg_marquardt = 0.01
         self.ocp.solver_options.integrator_type = "ERK"
 
         # initial value for p
