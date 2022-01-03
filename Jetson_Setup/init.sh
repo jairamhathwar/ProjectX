@@ -13,8 +13,16 @@ sudo apt-get -y upgrade
 sudo apt install -y git-all
 
 # install python related packages
-sudo apt-get install python-pip python3-dev python3-pip -y
-sudo -H pip2 install --upgrade pip
+sudo apt-get remove python-*
+sudo apt autoremove
+
+sudo apt-get install python3.8-dev
+update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
+
+
+# wget https://bootstrap.pypa.io/pip/2.7/get-pip.py
+# sudo -H python get-pip.py 
+# rm get-pip*
 
 wget https://bootstrap.pypa.io/get-pip.py
 sudo -H python3 get-pip.py
@@ -23,7 +31,7 @@ rm get-pip*
 sudo -H pip3 install matplotlib scipy numpy virtualenv pyyaml
 
 # install jetson stats
-sudo -H pip install -U jetson-stats
+sudo -H pip3 install -U jetson-stats
 
 sh $cur_dir/install_ros.sh
 sh $cur_dir/install_zed.sh
@@ -33,4 +41,8 @@ sudo apt-get install libusb-1.0-0-dev mono-runtime libmono-system-windows-forms4
 
 
 cd $cur_dir
+
+sh install_zed.sh
+sh install_ros.sh
+sh install_acados.sh
 
