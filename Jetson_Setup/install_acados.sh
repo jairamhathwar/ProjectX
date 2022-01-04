@@ -2,7 +2,8 @@
 
 # need to fix the render 
 # https://discourse.acados.org/t/problems-with-t-renderer/438
-sudo -H pip3 install --upgrade --no-deps --force-reinstall matplotlib scipy numpy 
+
+# sudo -H pip3 install --upgrade --no-deps --force-reinstall matplotlib scipy numpy 
 
 # install rust
 curl https://sh.rustup.rs -sSf -o install_rust.sh
@@ -21,6 +22,11 @@ mkdir -p build
 cd build
 cmake -DBLASFEO_TARGET=GENERIC -DHPIPM_TARGET=GENERIC -DACADOS_WITH_QPOASES=ON -DACADOS_WITH_HPMPC=OFF -DACADOS_WITH_QORE=ON -DACADOS_WITH_OOQP=ON ACADOS_WITH_QPDUNES=ON -DACADOS_WITH_OSQP=ON ..
 make install -j4
+
+# install python
+sudo -H pip3 install --upgrade --no-deps --force-reinstall matplotlib scipy numpy 
+
 # copy the tera_renderer
+
 cd ..
 cp ../tera_renderer/target/release/t_renderer bin/

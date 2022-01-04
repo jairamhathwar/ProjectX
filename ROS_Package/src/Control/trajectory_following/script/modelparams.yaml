@@ -31,12 +31,12 @@ delta_max: 0.40  # maximum steering angle [rad]
 deltadot_min: -2  # minimum steering angle cahgne[rad/s]
 deltadot_max: 2 # maximum steering angle cahgne[rad/s]
 
-d_min: -0.1
-d_max: 1
+d_min: -0.5
+d_max: 1.0
 
 
 # Weight
 Q_pos: 100.0
 Q_psi: 10.0
-Q_vel: 0.5
+Q_vel: 5.0
 Q_u: 0.1

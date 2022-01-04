@@ -106,7 +106,9 @@ class TrajTrackingDyn(TrajTrackingBase):
         alpha_r = casadi.atan2((omega*l_r-Vy), Vx)
 
         # Tire force
-        F_x = ((C_m1-C_m2*Vx)*d-C_roll-C_d*Vx*Vx)/2
+        F_x = (casadi.if_else(d>=0,(C_m1-C_m2*Vx),C_m2*Vx)*d-C_roll-C_d*Vx*Vx)/2
+        #F_x = (casadi.if_else(d>=0,(C_m1-C_m2*Vx),C_m2*Vx)*casadi.fabs(d)-C_roll-C_d*Vx*Vx)/2
+        #((C_m1/2+casadi.
         F_fy = D_f*casadi.sin(C_f*casadi.atan(B_f*alpha_f))
         F_ry = D_r*casadi.sin(C_r*casadi.atan(B_r*alpha_r))
 
@@ -210,7 +212,7 @@ class TrajTrackingDyn(TrajTrackingBase):
         delta_vel = self.acados_model.x[2] - vel_ref
 
         self.acados_model.cost_expr_ext_cost = delta_pos_x*Q_pos*delta_pos_x + delta_pos_y*Q_pos*delta_pos_y \
-                + self.acados_model.u[0]*Q_u*self.acados_model.u[0] + self.acados_model.u[1]*Q_u*self.acados_model.u[1] \
+                + (self.acados_model.u[0]+1)*Q_u*(self.acados_model.u[0]+1) + self.acados_model.u[1]*Q_u*self.acados_model.u[1] \
                 + delta_psi*Q_psi*delta_psi + delta_vel*Q_vel*delta_vel
                 
         self.ocp.cost.cost_type = "EXTERNAL"
@@ -220,21 +222,22 @@ class TrajTrackingDyn(TrajTrackingBase):
 if __name__ == '__main__':
 
     Tf = 1
-    N = Tf*20
+    step = 20
+    N = Tf*step
 
-    angle = np.linspace(0, np.pi/6, N)
-    r = 2
+    # angle = np.linspace(0, np.pi/6, N)
+    # r = 2
     
-    x_ref = r*np.cos(angle)
-    y_ref = r*np.sin(angle)
+    # x_ref = r*np.cos(angle)
+    # y_ref = r*np.sin(angle)
 
-    psi_ref = angle + np.pi/2
-    vel_ref =r*np.pi/6/Tf*np.ones_like(angle)
+    # psi_ref = angle + np.pi/2
+    # vel_ref =r*np.pi/6/Tf*np.ones_like(angle)
 
-    ref_traj = np.stack([x_ref, y_ref, psi_ref, vel_ref])
+    # ref_traj = np.stack([x_ref, y_ref, psi_ref, vel_ref])
 
 
-    x_0 = np.array([1.98, -0.02,  vel_ref[0]*0.98, 0, np.pi/2, 0, 0])
+    # x_0 = np.array([1.98, -0.02,  vel_ref[0]*0.98, 0, np.pi/2, 0, 0])
 
     # v = 1
     # x_ref = np.linspace(0, v*Tf, N,endpoint=False)
@@ -244,6 +247,17 @@ if __name__ == '__main__':
 
     # ref_traj = np.stack([x_ref, y_ref, psi_ref, v_ref])
     # x_0 = np.array([0,0,1,0,0,0,0])
+
+    v_ref = np.linspace(1.5,0,N)
+    dt = 1.0/step
+    x_ref = np.cumsum(v_ref)*dt
+    x_ref = np.insert(x_ref[:-1], 0, 0)
+    y_ref = np.zeros_like(x_ref)
+    psi_ref = np.zeros_like(x_ref)
+    ref_traj = np.stack([x_ref, y_ref, psi_ref, v_ref])
+    x_0 = np.array([0,0,1.5,0,0,0,0])
+
+
 
     ocp = TrajTrackingDyn(Tf, N)
     ocp.solve(ref_traj, x_0)

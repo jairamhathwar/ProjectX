@@ -21,11 +21,11 @@ sudo apt-get install -y python3.8-dev
 
 
 wget https://bootstrap.pypa.io/pip/2.7/get-pip.py
-sudo -H python get-pip.py 
+python get-pip.py --user
 rm get-pip*
 
 wget https://bootstrap.pypa.io/get-pip.py
-sudo -H python3.8 get-pip.py
+python3.8 get-pip.py --user
 rm get-pip*
 
 sudo -H pip3 install matplotlib scipy numpy virtualenv pyyaml

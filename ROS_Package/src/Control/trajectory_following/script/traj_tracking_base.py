@@ -51,8 +51,8 @@ class TrajTrackingBase(ABC):
         # set QP solver and integration
         self.ocp.dims.N = self.N
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'#'PARTIAL_CONDENSING_HPIPM'#
-        self.ocp.solver_options.nlp_solver_type = "SQP"#"SQP_RTI" #
+        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'#'FULL_CONDENSING_QPOASES'#
+        self.ocp.solver_options.nlp_solver_type = "SQP_RTI" # "SQP"#
         self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
         #self.ocp.solver_options.levenberg_marquardt = 0.01
         self.ocp.solver_options.integrator_type = "ERK"
@@ -98,8 +98,8 @@ class TrajTrackingBase(ABC):
         self.acados_solver.print_statistics()
         x_sol = np.array(x_sol)
         u_sol = np.array(u_sol)
-        #print(x_sol)
-        # #print(u_solution)
+        print(x_sol[:,0] - ref_traj[0,:])
+        print(u_sol)
         #print(ref_traj.T)
         fig, (ax1, ax2) = plt.subplots(1, 2)
         ax1.plot(x_sol[:,0], x_sol[:,1],'-.')
