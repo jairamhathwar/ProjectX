@@ -16,13 +16,13 @@ sudo apt install -y git-all
 #sudo apt-get remove python-*
 #sudo apt autoremove -y
 
-sudo apt-get install python3.8-dev
+sudo apt-get install -y python3.8-dev
 #update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
 
 
-# wget https://bootstrap.pypa.io/pip/2.7/get-pip.py
-# sudo -H python get-pip.py 
-# rm get-pip*
+wget https://bootstrap.pypa.io/pip/2.7/get-pip.py
+sudo -H python get-pip.py 
+rm get-pip*
 
 wget https://bootstrap.pypa.io/get-pip.py
 sudo -H python3.8 get-pip.py
