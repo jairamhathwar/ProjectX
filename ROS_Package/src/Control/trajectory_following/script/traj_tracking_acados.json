@@ -1,6 +1,6 @@
 {
-    "acados_include_path": "/home/zixu/Data/Git_Repo/acados/include",
-    "acados_lib_path": "/home/zixu/Data/Git_Repo/acados/lib",
+    "acados_include_path": "/home/nx1/Documents/acados/include",
+    "acados_lib_path": "/home/nx1/Documents/acados/lib",
     "code_export_directory": "c_generated_code",
     "constraints": {
         "C": [],
@@ -13,6 +13,7 @@
             1
         ],
         "idxbx": [
+            2,
             6
         ],
         "idxbx_0": [
@@ -44,10 +45,11 @@
         "idxsphi": [],
         "idxsphi_e": [],
         "lbu": [
-            -0.5,
+            -1.0,
             -2.0
         ],
         "lbx": [
+            -0.01,
             -0.4
         ],
         "lbx_0": [
@@ -62,9 +64,7 @@
         "lbx_e": [],
         "lg": [],
         "lg_e": [],
-        "lh": [
-            -1
-        ],
+        "lh": [],
         "lh_e": [],
         "lphi": [],
         "lphi_e": [],
@@ -82,6 +82,7 @@
             2.0
         ],
         "ubx": [
+            5.0,
             0.4
         ],
         "ubx_0": [
@@ -96,9 +97,7 @@
         "ubx_e": [],
         "ug": [],
         "ug_e": [],
-        "uh": [
-            5
-        ],
+        "uh": [],
         "uh_e": [],
         "uphi": [],
         "uphi_e": [],
@@ -144,13 +143,13 @@
     "dims": {
         "N": 20,
         "nbu": 2,
-        "nbx": 1,
+        "nbx": 2,
         "nbx_0": 7,
         "nbx_e": 0,
         "nbxe_0": 7,
         "ng": 0,
         "ng_e": 0,
-        "nh": 1,
+        "nh": 0,
         "nh_e": 0,
         "np": 4,
         "nphi": 0,

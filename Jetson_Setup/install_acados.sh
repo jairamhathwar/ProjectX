@@ -28,6 +28,9 @@ cmake -DBLASFEO_TARGET=GENERIC -DHPIPM_TARGET=GENERIC -DACADOS_WITH_QPOASES=ON \
         -DACADOS_WITH_QPDUNES=ON -DACADOS_WITH_OSQP=ON ..
 make install -j4
 
+echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$work_dir/acados/lib"" >> ~/.bashrc
+echo "export ACADOS_SOURCE_DIR="$work_dir/acados"" >> ~/.bashrc
+
 # copy the tera_renderer
 
 cd ..
@@ -38,3 +41,4 @@ cd $work_dir
 virtualenv ACADOS_env --python=/usr/bin/python3.8
 source ACADOS_env/bin/activative
 pip3 install -e acados/interfaces/acados_template
+pip install pyyaml

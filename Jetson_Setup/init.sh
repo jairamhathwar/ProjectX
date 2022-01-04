@@ -28,7 +28,7 @@ rm get-pip*
 # fix dependency
 pip3 install testresources
 
-pip3 install matplotlib scipy numpy virtualenv pyyaml
+pip3 install matplotlib scipy numpy virtualenv
 
 # install jetson stats
 pip3 install -U jetson-stats

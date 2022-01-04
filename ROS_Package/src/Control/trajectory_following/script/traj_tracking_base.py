@@ -52,16 +52,17 @@ class TrajTrackingBase(ABC):
         self.ocp.dims.N = self.N
         self.ocp.solver_options.tf = self.Tf
         self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'#'FULL_CONDENSING_QPOASES'#
-        self.ocp.solver_options.nlp_solver_type = "SQP_RTI" # "SQP"#
+        self.ocp.solver_options.nlp_solver_type = "SQP_RTI" #"SQP"# 
         self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
-        #self.ocp.solver_options.levenberg_marquardt = 0.01
+        #self.ocp.solver_options.levenberg_marquardt = 1e-3
         self.ocp.solver_options.integrator_type = "ERK"
 
         # initial value for p
         self.ocp.parameter_values = np.zeros(self.acados_model.p.size()[0])
 
-        #self.ocp.solver_options.nlp_solver_max_iter = 50
-        #self.ocp.solver_options.qp_solver_iter_max = 50
+        # self.ocp.solver_options.nlp_solver_max_iter = 50
+        # self.ocp.solver_options.qp_solver_iter_max = 100
+
         self.ocp.solver_options.tol = 1e-3
 
         self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_tracking_acados.json")
@@ -74,12 +75,12 @@ class TrajTrackingBase(ABC):
             self.acados_solver.set(stageidx, "p", p_val)
             
             # warm start
-            if x_init:
+            if x_init is not None:
                 self.acados_solver.set(stageidx, "x", x_init[:, stageidx])
             else:
                 self.acados_solver.set(stageidx, "x", x_cur)
 
-            if u_init:
+            if u_init is not None:
                 self.acados_solver.set(stageidx, "u", u_init[:, stageidx])
 
         # set initial state
@@ -98,17 +99,18 @@ class TrajTrackingBase(ABC):
         self.acados_solver.print_statistics()
         x_sol = np.array(x_sol)
         u_sol = np.array(u_sol)
-        print(x_sol[:,0] - ref_traj[0,:])
-        print(u_sol)
+        # print(x_sol[:,0] - ref_traj[0,:])
+        # print(u_sol)
         #print(ref_traj.T)
         fig, (ax1, ax2) = plt.subplots(1, 2)
         ax1.plot(x_sol[:,0], x_sol[:,1],'-.')
         ax1.plot(ref_traj[0,:], ref_traj[1,:], '.')
         
-        ax2.plot(x_sol[:,3],'-')
-        ax2.plot(x_sol[:,4],'.')
-        ax2.plot(u_sol[:,0],'-.')
-        ax2.plot(u_sol[:,1],'--')
+        ax2.plot(x_sol[:,2],'-') # vx
+        ax2.plot(ref_traj[-1,:],'-') # vx
+        ax2.plot(x_sol[:,3],'.') # vy
+        ax2.plot(u_sol[:,0],'-.') # d
+        ax2.plot(u_sol[:,1],'--') # delta
         plt.show()
         return x_sol, u_sol                                     
 
