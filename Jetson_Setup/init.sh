@@ -1,16 +1,13 @@
 #!/bin/bash
 
-# set cur)dir
-cur_dir=$PWD
-# work_dir 
-work_dir=~/Documents
+
 
 #cd $work_dir
 sudo apt-get update 
 sudo apt-get -y upgrade
 
 # install git
-sudo apt install -y git-all
+sudo apt install -y git
 
 # install python related packages
 #sudo apt-get remove python-*
@@ -28,19 +25,22 @@ wget https://bootstrap.pypa.io/get-pip.py
 python3.8 get-pip.py --user
 rm get-pip*
 
-sudo -H pip3 install matplotlib scipy numpy virtualenv pyyaml
+# fix dependency
+pip3 install testresources
+
+pip3 install matplotlib scipy numpy virtualenv pyyaml
 
 # install jetson stats
-sudo -H pip3 install -U jetson-stats
+pip3 install -U jetson-stats
 
-# sh $cur_dir/install_ros.sh
-# sh $cur_dir/install_zed.sh
+sh install_ros.sh
+sh install_zed.sh
+sh install_acados.sh
 
 # Install controller dependence
 sudo apt-get install libusb-1.0-0-dev mono-runtime libmono-system-windows-forms4.0-cil -y
 
 
-cd $cur_dir
 
 
 

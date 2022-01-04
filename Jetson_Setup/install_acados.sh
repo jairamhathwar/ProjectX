@@ -4,12 +4,15 @@
 # https://discourse.acados.org/t/problems-with-t-renderer/438
 
 # sudo -H pip3 install --upgrade --no-deps --force-reinstall matplotlib scipy numpy 
+work_dir=~/Documents
+cd $work_dir
 
 # install rust
 curl https://sh.rustup.rs -sSf -o install_rust.sh
 sh install_rust.sh -y
 rm install_rust.sh
 
+source ~/.bashrc
 # get tera_renderer
 git clone https://github.com/acados/tera_renderer.git
 cd tera_renderer
@@ -20,13 +23,18 @@ git clone --recursive https://github.com/acados/acados.git
 cd acados
 mkdir -p build
 cd build
-cmake -DBLASFEO_TARGET=GENERIC -DHPIPM_TARGET=GENERIC -DACADOS_WITH_QPOASES=ON -DACADOS_WITH_HPMPC=OFF -DACADOS_WITH_QORE=ON -DACADOS_WITH_OOQP=ON ACADOS_WITH_QPDUNES=ON -DACADOS_WITH_OSQP=ON ..
+cmake -DBLASFEO_TARGET=GENERIC -DHPIPM_TARGET=GENERIC -DACADOS_WITH_QPOASES=ON \
+        -DACADOS_WITH_HPMPC=OFF -DACADOS_WITH_QORE=ON -DACADOS_WITH_OOQP=ON \
+        -DACADOS_WITH_QPDUNES=ON -DACADOS_WITH_OSQP=ON ..
 make install -j4
-
-# install python
-sudo -H pip3 install --upgrade --no-deps --force-reinstall matplotlib scipy numpy 
 
 # copy the tera_renderer
 
 cd ..
 cp ../tera_renderer/target/release/t_renderer bin/
+
+# create the virtualenv
+cd $work_dir
+virtualenv ACADOS_env --python=/usr/bin/python3.8
+source ACADOS_env/bin/activative
+pip3 install -e acados/interfaces/acados_template
