@@ -40,5 +40,7 @@ cp ../tera_renderer/target/release/t_renderer bin/
 cd $work_dir
 virtualenv ACADOS_env --python=/usr/bin/python3.8
 source ACADOS_env/bin/activative
-pip3 install -e acados/interfaces/acados_template
-pip install pyyaml
+
+# set up env in virtualenv
+pip install -e acados/interfaces/acados_template
+pip install pyyaml rospkg empy

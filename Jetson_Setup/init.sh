@@ -17,9 +17,10 @@ sudo apt-get install -y python3.8-dev
 #update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
 
 
-wget https://bootstrap.pypa.io/pip/2.7/get-pip.py
-python get-pip.py --user
-rm get-pip*
+# wget https://bootstrap.pypa.io/pip/2.7/get-pip.py
+# python get-pip.py --user
+# rm get-pip*
+sudo apt-get intall -y python-pip python-numpy python-matplotlib python-scipy python-virtualenv
 
 wget https://bootstrap.pypa.io/get-pip.py
 python3.8 get-pip.py --user
@@ -28,7 +29,7 @@ rm get-pip*
 # fix dependency
 pip3 install testresources
 
-pip3 install matplotlib scipy numpy virtualenv
+pip3 install --upgrade matplotlib scipy numpy virtualenv
 
 # install jetson stats
 pip3 install -U jetson-stats
