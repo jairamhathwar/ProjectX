@@ -20,7 +20,7 @@ sudo apt-get install -y python3.8-dev
 # wget https://bootstrap.pypa.io/pip/2.7/get-pip.py
 # python get-pip.py --user
 # rm get-pip*
-sudo apt-get intall -y python-pip python-numpy python-matplotlib python-scipy python-virtualenv
+sudo apt-get install -y python-pip python-numpy python-matplotlib python-scipy python-virtualenv
 
 wget https://bootstrap.pypa.io/get-pip.py
 python3.8 get-pip.py --user
@@ -32,7 +32,7 @@ pip3 install testresources
 pip3 install --upgrade matplotlib scipy numpy virtualenv
 
 # install jetson stats
-pip3 install -U jetson-stats
+sudo -H pip install jetson-stats
 
 sh install_ros.sh
 sh install_zed.sh
