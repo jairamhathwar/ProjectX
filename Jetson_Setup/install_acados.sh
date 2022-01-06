@@ -39,7 +39,7 @@ cp ../tera_renderer/target/release/t_renderer bin/
 # create the virtualenv
 cd $work_dir
 virtualenv ACADOS_env --python=/usr/bin/python3.8
-source ACADOS_env/bin/activative
+source ACADOS_env/bin/activate
 
 # set up env in virtualenv
 pip install -e acados/interfaces/acados_template
