@@ -224,7 +224,7 @@ if __name__ == '__main__':
 
     Tf = 1
     step = 20
-    N = Tf*step
+    N = int(Tf*step)
 
     # angle = np.linspace(0, np.pi/6, N)
     # r = 2
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     # x_0 = np.array([1.98, -0.02,  vel_ref[0]*0.98, 0, np.pi/2, 0, 0])
     ''' turn and slow down '''
     dt = 1.0/step
-    dangle = np.linspace(np.pi/4/N, np.pi/20/N, N)
+    dangle = np.linspace(np.pi/4/N, 0, N)
     angle = np.cumsum(dangle)
     angle = np.insert(angle[:-1], 0, 0)
     r = 2

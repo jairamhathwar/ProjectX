@@ -10,7 +10,7 @@ find_package(catkin REQUIRED ${CATKIN_DEPS})
 
 roslint_cpp()
 
-catkin_package(DEPENDS sensor_msgs)
+catkin_package(DEPENDS sensor_msgs rc_control_msgs)
 
 # Look for <linux/joystick.h>
 include(CheckIncludeFiles)

@@ -36,7 +36,7 @@ d_max: 1.0
 
 
 # Weight
-Q_pos: 10.0
-Q_psi: 3.0
-Q_vel: 0.5
-Q_u: 0.01
+Q_pos: 100.0
+Q_psi: 0.0
+Q_vel: 5
+Q_u: 0.1

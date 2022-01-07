@@ -63,7 +63,7 @@ class TrajTrackingBase(ABC):
         # self.ocp.solver_options.nlp_solver_max_iter = 50
         # self.ocp.solver_options.qp_solver_iter_max = 100
 
-        self.ocp.solver_options.tol = 1e-3
+        self.ocp.solver_options.tol = 1e-2
 
         self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_tracking_acados.json")
 

@@ -1,6 +1,6 @@
 {
-    "acados_include_path": "/home/nx1/Documents/acados/include",
-    "acados_lib_path": "/home/nx1/Documents/acados/lib",
+    "acados_include_path": "/home/nvidia/Documents/acados/include",
+    "acados_lib_path": "/home/nvidia/Documents/acados/lib",
     "code_export_directory": "c_generated_code",
     "constraints": {
         "C": [],
@@ -250,10 +250,10 @@
         "model_external_shared_lib_name": null,
         "nlp_solver_max_iter": 100,
         "nlp_solver_step_length": 1.0,
-        "nlp_solver_tol_comp": 0.001,
-        "nlp_solver_tol_eq": 0.001,
-        "nlp_solver_tol_ineq": 0.001,
-        "nlp_solver_tol_stat": 0.001,
+        "nlp_solver_tol_comp": 0.01,
+        "nlp_solver_tol_eq": 0.01,
+        "nlp_solver_tol_ineq": 0.01,
+        "nlp_solver_tol_stat": 0.01,
         "nlp_solver_type": "SQP_RTI",
         "print_level": 0,
         "qp_solver": "PARTIAL_CONDENSING_HPIPM",

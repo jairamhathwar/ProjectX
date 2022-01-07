@@ -1,5 +1,8 @@
-#! /bin/sh
-virtual_python_dir = ~/Documents/ACADOS_env/bin
+#! /bin/bash
+virtual_python_dir=~/Documents/ACADOS_env/bin
+
+# install dependence
+rosdep install --from-paths src --ignore-src -r -y
 
 # first source the python env
 source $virtual_python_dir/activate
