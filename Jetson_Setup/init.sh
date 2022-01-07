@@ -9,9 +9,11 @@ sudo apt-get -y upgrade
 # install git
 sudo apt install -y git
 
-# install python related packages
-#sudo apt-get remove python-*
-#sudo apt autoremove -y
+# upgrade cmake
+wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+sudo apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
+sudo apt update
+sudo apt install -y cmake
 
 sudo apt-get install -y python3.8-dev
 #update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
