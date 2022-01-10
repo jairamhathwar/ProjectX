@@ -1,10 +1,14 @@
 Header header
 
-# One paddle drive, range -1 to 1, 1 is max throttle, -1 is max brake
+# time difference between each trajectory point
 float64 dt
 
-# Range -1 to +1, +1 is maximum left turn
-float64 steer
+# discrete nominal trajectory
+float64[] x
+float64[] y
+float64[] psi
+float64[] vel
 
-# define gear_mode True for reverse
-bool reverse
+# discrete nominal control input
+float64[] steering
+float64[] throttle

@@ -10,7 +10,7 @@ find_package(Boost REQUIRED)
 
 add_message_files(
   DIRECTORY msg
-  FILES RCControl.msg
+  FILES Trajectory.msg
 )
 
 generate_messages(
@@ -20,5 +20,5 @@ generate_messages(
 
 catkin_package(
   CATKIN_DEPENDS message_runtime std_msgs
-  DEPENDS Boost)
+  DEPENDS Boost
 )
