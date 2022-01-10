@@ -1,8 +1,8 @@
 <package format="2">
-  <name>rc_control_msgs</name>
+  <name>traj_msgs</name>
   <version>0.0.1</version>
   <description>
-  Messages for control RC car's ESC and steering servo
+  Messages for discrete trajectory to be tracked by a trajectory tracking controller
   </description>
   <maintainer email="zixuz@princeton.edu">Zixu Zhang</maintainer>
   <license>BSD</license>
