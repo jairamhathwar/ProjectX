@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(traj_tracking_ros)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -8,7 +8,7 @@ project(traj_tracking_ros)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  rospy std_msgs rc_control_msgs 
+  rospy std_msgs rc_control_msgs traj_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
+catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -107,6 +107,8 @@ catkin_package(
    CATKIN_DEPENDS rospy std_msgs rc_control_msgs 
 #  DEPENDS system_lib
 )
+catkin_install_python(PROGRAMS scripts/traj_tracking_node.py 
+			DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 ###########
 ## Build ##

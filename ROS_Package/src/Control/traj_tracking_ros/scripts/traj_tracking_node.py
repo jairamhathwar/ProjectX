@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from rc_control_msgs.msg import RCControl
-import casadi
+from MPC import MPC
 import sys, os
 
 

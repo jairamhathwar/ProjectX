@@ -89,13 +89,14 @@ class TrajTrackingKin(TrajTrackingBase):
         
         # control input
         u = casadi.vertcat(d, delta_dot)
+        F_x = (casadi.if_else(d>0,(C_m1-C_m2*vel_x),C_m2*vel_x)*d-C_roll-C_d*vel_x*vel_x)
 
         # system dynamics
         f_expl = casadi.vertcat(
             vel*casadi.cos(psi+beta), # X_dot
             vel*casadi.sin(psi+beta), # Y_dot
             vel/l_r*casadi.sin(beta), # psi_dot
-            ((C_m1-C_m2*vel_x)*d-C_roll-C_d*vel_x*vel_x)/m, # accel
+            F_x/m, # accel
             delta_dot
         )
 

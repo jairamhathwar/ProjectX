@@ -67,9 +67,7 @@ class TrajTrackingBase(ABC):
 
         self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_tracking_acados.json")
 
-
     def solve(self, ref_traj, x_cur, x_init = None, u_init = None):
-        t0 = time.time()
         for stageidx  in range(self.N):
             p_val = ref_traj[:,stageidx]
             self.acados_solver.set(stageidx, "p", p_val)
@@ -89,29 +87,62 @@ class TrajTrackingBase(ABC):
 
         # solve the system
         self.acados_solver.solve()
-        t1 = time.time()
-        print(t1-t0)
+        
         x_sol = []
         u_sol = []
         for stageidx in range(self.N):
             x_sol.append(self.acados_solver.get(stageidx, 'x'))
             u_sol.append(self.acados_solver.get(stageidx, 'u'))
-        self.acados_solver.print_statistics()
+
         x_sol = np.array(x_sol)
         u_sol = np.array(u_sol)
-        # print(x_sol[:,0] - ref_traj[0,:])
-        # print(u_sol)
-        #print(ref_traj.T)
-        fig, (ax1, ax2) = plt.subplots(1, 2)
-        ax1.plot(x_sol[:,0], x_sol[:,1],'-.')
-        ax1.plot(ref_traj[0,:], ref_traj[1,:], '.')
-        
-        ax2.plot(x_sol[:,2],'-') # vx
-        ax2.plot(ref_traj[-1,:],'-') # vx
-        ax2.plot(x_sol[:,3],'.') # vy
-        ax2.plot(u_sol[:,0],'-.') # d
-        ax2.plot(u_sol[:,1],'--') # delta
-        plt.show()
         return x_sol, u_sol                                     
+
+
+    # def solve(self, ref_traj, x_cur, x_init = None, u_init = None):
+    #     t0 = time.time()
+    #     for stageidx  in range(self.N):
+    #         p_val = ref_traj[:,stageidx]
+    #         self.acados_solver.set(stageidx, "p", p_val)
+            
+    #         # warm start
+    #         if x_init is not None:
+    #             self.acados_solver.set(stageidx, "x", x_init[:, stageidx])
+    #         else:
+    #             self.acados_solver.set(stageidx, "x", x_cur)
+
+    #         if u_init is not None:
+    #             self.acados_solver.set(stageidx, "u", u_init[:, stageidx])
+
+    #     # set initial state
+    #     self.acados_solver.set(0, "lbx", x_cur)
+    #     self.acados_solver.set(0, "ubx", x_cur)
+
+    #     # solve the system
+    #     self.acados_solver.solve()
+    #     t1 = time.time()
+    #     print(t1-t0)
+    #     x_sol = []
+    #     u_sol = []
+    #     for stageidx in range(self.N):
+    #         x_sol.append(self.acados_solver.get(stageidx, 'x'))
+    #         u_sol.append(self.acados_solver.get(stageidx, 'u'))
+    #     self.acados_solver.print_statistics()
+    #     x_sol = np.array(x_sol)
+    #     u_sol = np.array(u_sol)
+    #     # print(x_sol[:,0] - ref_traj[0,:])
+    #     # print(u_sol)
+    #     #print(ref_traj.T)
+    #     fig, (ax1, ax2) = plt.subplots(1, 2)
+    #     ax1.plot(x_sol[:,0], x_sol[:,1],'-.')
+    #     ax1.plot(ref_traj[0,:], ref_traj[1,:], '.')
+        
+    #     ax2.plot(x_sol[:,2],'-') # vx
+    #     ax2.plot(ref_traj[-1,:],'-') # vx
+    #     ax2.plot(x_sol[:,3],'.') # vy
+    #     ax2.plot(u_sol[:,0],'-.') # d
+    #     ax2.plot(u_sol[:,1],'--') # delta
+    #     plt.show()
+    #     return x_sol, u_sol                                     
 
     
