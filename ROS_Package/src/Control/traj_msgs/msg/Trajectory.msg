@@ -2,6 +2,7 @@ Header header
 
 # time difference between each trajectory point
 float64 dt
+uint32 step
 
 # discrete nominal trajectory
 float64[] x

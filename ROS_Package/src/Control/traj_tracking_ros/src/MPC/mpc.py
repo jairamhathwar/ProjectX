@@ -1,5 +1,6 @@
 from .traj_tracking_dyn import TrajTrackingDyn
 from .traj_tracking_kin import TrajTrackingKin
+from .realtime_buffer import RealtimeBuffer
 import numpy as np
 from scipy.interpolate import CubicSpline
 from rc_control_msgs.msg import RCControl
@@ -7,6 +8,34 @@ from traj_msgs.msg import Trajectory
 from geometry_msgs.msg import PoseStamped
 import rospy
 from queue import Queue
+
+
+class RefTraj:
+    def __init__(self, msg) -> None:
+        '''
+        Decode the ros message and apply cubic interpolation 
+        '''
+        self.t_0 = msg.header.stamp.to_sec()
+        self.dt = msg.dt
+        self.step = msg.step
+        
+        # discrete time step
+        self.t = np.linspace(0, self.step*self.dt, self.step, endpoint=False) # unit of second
+        
+        self.x = CubicSpline(self.t, np.array(msg.x))
+        self.y = CubicSpline(self.t, np.array(msg.y))
+        
+        self.psi = CubicSpline(self.t, np.array(msg.psi))
+        self.vel = CubicSpline(self.t, np.array(msg.vel))
+        
+    def interp_traj(self, t_1, dt, n):
+        t_interp = np.arange(n)*dt+(t_1.to_sec()-self.t_0)
+        x_interp = self.x(t_interp)
+        y_interp = self.y(t_interp)
+        psi_interp = self.psi(t_interp)
+        vel_interp = self.vel(t_interp)
+        
+        return t_interp, x_interp, y_interp, psi_interp, vel_interp
 
 class MPC:
     def __init__(self, T = 1, N = 10,
@@ -26,9 +55,9 @@ class MPC:
 
         self.T =T
         self.N = N
+        self.traj_buffer = RealtimeBuffer()
         
         # set up the optimal control solver
-
         if dyn_model:
             self.ocp_solver = TrajTrackingDyn(self.T, self.N, params_file = params_file)
         else:
