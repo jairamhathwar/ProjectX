@@ -14,4 +14,7 @@ pip3 install rospkg catkin_pkg
 sudo rosdep init
 rosdep update
 
+# remove image transport plug in
+sudo apt-get remove -y ros-melodic-theora-image-transport ros-melodic-compressed-image-transport ros-melodic-compressed-depth-image-transport
+
 # http://wiki.ros.org/UsingPython3/BuildUsingPython3
