@@ -4,8 +4,9 @@ from MPC import MPC
 import sys, os
 
 
+def main():
+    rospy.init_node('traj_tracking')
+    
 if __name__ == '__main__':
-    print("Using the python from", 
-        os.path.dirname(sys.executable))
-    rospy.init_node('test_node')
+    main()
     
