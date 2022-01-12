@@ -43,4 +43,4 @@ source ACADOS_env/bin/activate
 
 # set up env in virtualenv
 pip install -e acados/interfaces/acados_template
-pip install pyyaml rospkg empy
+pip install pyyaml rospkg empy sympy spatialmath-python

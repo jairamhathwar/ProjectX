@@ -1,17 +1,21 @@
 from .traj_tracking_dyn import TrajTrackingDyn
-from .traj_tracking_kin import TrajTrackingKin
+#from .traj_tracking_kin import TrajTrackingKin
 from .realtime_buffer import RealtimeBuffer
+
 import numpy as np
 from scipy.interpolate import CubicSpline
+import rospy
+from queue import Queue
+# https://petercorke.github.io/spatialmath-python/intro.html
+from spatialmath.base import *
 from rc_control_msgs.msg import RCControl
 from traj_msgs.msg import Trajectory 
 from geometry_msgs.msg import PoseStamped
-import rospy
-from queue import Queue
+
 
 
 class RefTraj:
-    def __init__(self, msg) -> None:
+    def __init__(self, msg: Trajectory) -> None:
         '''
         Decode the ros message and apply cubic interpolation 
         '''
@@ -56,13 +60,15 @@ class MPC:
         self.T =T
         self.N = N
         self.traj_buffer = RealtimeBuffer()
-        self.old_pose = None
+        self.prev_pose = None
+        self.prev_t = None
+        self.prev_control = np.zeros(2)
         
         # set up the optimal control solver
-        if dyn_model:
-            self.ocp_solver = TrajTrackingDyn(self.T, self.N, params_file = params_file)
-        else:
-            self.ocp_solver = TrajTrackingKin(self.T, self.N, params_file = params_file)
+        #if dyn_model:
+        self.ocp_solver = TrajTrackingDyn(self.T, self.N, params_file = params_file)
+        # else:
+        #     self.ocp_solver = TrajTrackingKin(self.T, self.N, params_file = params_file)
         
         # set up subscriber to the reference trajectory and pose
         self.traj_sub = rospy.Subscriber(ref_traj_topic, Trajectory, self.traj_sub_callback)
@@ -71,12 +77,43 @@ class MPC:
         # set up publisher to the low-level ESC and servo controller
         self.control_pub = rospy.Publisher(controller_topic, RCControl, queue_size=10)
 
-    def traj_sub_callback(self, msg):
+    def traj_sub_callback(self, msg: Trajectory):
+        """
+        Subscriber callback function of the reference trajectory
+        """
         ref_traj = RefTraj(msg)
         self.traj_buffer.writeFromNonRT(ref_traj)
 
-    def pose_sub_callback(self):
+    def pose_sub_callback(self, msg: PoseStamped):
+        """
+        Subscriber callback function of the robot pose
+        """
         
+        # Convert the current pose msg into a SE3 Matrix
+        cur_pose = transl(msg.position.x, msg.position.y, msg.position.z)
+        cur_pose[:3,:3] = q2r([msg.orientation.x, 
+                        msg.orientation.y, 
+                        msg.orientation.z, 
+                        msg.orientation.w])
+
+
+        if self.prev_pose is not None:
+            # approximate the velocity
+            dt = (msg.header.stamp - self.prev_t).to_sec()
+            # [dx, dy, dz, dthetax, dthetay, dthetaz]
+            delta = tr2delta(self.prev_pose, cur_pose)
+
+            # get current state State: [X, Y, Vx, Vy, psi: heading, omega: yaw rate, delta: steering angle]
+            
+            
+        
+
+        self.prev_pose = cur_pose
+        self.prev_t = msg.header.stamp
+
+
+        # use tr2delta https://petercorke.github.io/spatialmath-python/func_3d.html#spatialmath.base.transforms3d.tr2delta
+
 
     def publish_control(self):
         pass
