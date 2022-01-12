@@ -56,6 +56,7 @@ class MPC:
         self.T =T
         self.N = N
         self.traj_buffer = RealtimeBuffer()
+        self.old_pose = None
         
         # set up the optimal control solver
         if dyn_model:
@@ -70,14 +71,12 @@ class MPC:
         # set up publisher to the low-level ESC and servo controller
         self.control_pub = rospy.Publisher(controller_topic, RCControl, queue_size=10)
 
-    def interp_traj(self):
-        pass
-
-    def traj_sub_callback(self):
-        pass
+    def traj_sub_callback(self, msg):
+        ref_traj = RefTraj(msg)
+        self.traj_buffer.writeFromNonRT(ref_traj)
 
     def pose_sub_callback(self):
-        pass
+        
 
     def publish_control(self):
         pass
