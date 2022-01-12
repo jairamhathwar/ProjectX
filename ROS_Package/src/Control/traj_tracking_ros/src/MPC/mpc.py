@@ -39,7 +39,9 @@ class RefTraj:
         psi_interp = self.psi(t_interp)
         vel_interp = self.vel(t_interp)
         
-        return t_interp, x_interp, y_interp, psi_interp, vel_interp
+        x_ref = np.stack([x_interp, y_interp, psi_interp, vel_interp])
+        
+        return t_interp, x_ref
 
 class MPC:
     def __init__(self, T = 1, N = 10,
@@ -59,6 +61,7 @@ class MPC:
 
         self.T =T
         self.N = N
+        self.dt = T/N
         self.traj_buffer = RealtimeBuffer()
         self.prev_pose = None
         self.prev_t = None
@@ -100,22 +103,37 @@ class MPC:
         if self.prev_pose is not None:
             # approximate the velocity
             dt = (msg.header.stamp - self.prev_t).to_sec()
+            
+            # use tr2delta https://petercorke.github.io/spatialmath-python/func_3d.html#spatialmath.base.transforms3d.tr2delta
             # [dx, dy, dz, dthetax, dthetay, dthetaz]
             delta = tr2delta(self.prev_pose, cur_pose)
 
             # get current state State: [X, Y, Vx, Vy, psi: heading, omega: yaw rate, delta: steering angle]
+            x_cur = np.array([msg.position.x, msg.position.y, 
+                              delta[0]/dt, delta[1]/dt, 
+                              tr2rpy(cur_pose)[-1], # heading
+                              delta[-1]/dt, # yaw rate
+                              self.prev_control[1] # steering angle ( assume the servo will reach that position)
+                              ])
             
+            # get the reference trajectory
+            ref_traj = self.traj_buffer.readFromRT()
+            _, x_ref = ref_traj.interp_traj(self, msg.header.stamp, self.dt, self.N)
             
-        
-
+            # solve the ocp
+            sol_x, sol_u = self.ocp_solver.solve(x_ref, x_cur)
+            
+            # form the new control output by taking the first
+            control = RCControl()
+            control.header = msg.header
+            control.throttle = sol_u[0,0]
+            control.steer = sol_x[0,-1]+sol_u[0,1]*dt  # assume pose receieved at a fixed rate
+            control.reverse = False
+            
+            self.control_pub.publish(control)
+            self.prev_control = np.array([control.throttle, control.steer])          
+            
         self.prev_pose = cur_pose
         self.prev_t = msg.header.stamp
-
-
-        # use tr2delta https://petercorke.github.io/spatialmath-python/func_3d.html#spatialmath.base.transforms3d.tr2delta
-
-
-    def publish_control(self):
-        pass
 
     
