@@ -1,9 +1,10 @@
 #! /bin/bash
-virtual_python_dir=/home/zixu/Data/PythonVirtualEnv/ros_test/bin
-#~/Documents/ACADOS_env/bin
+virtual_python_dir=~/Documents/ACADOS_env/bin
+#/home/zixu/Data/PythonVirtualEnv/ros_test/bin
+
 
 # install dependence
-rosdep install --from-paths src --ignore-src -r -y
+# rosdep install --from-paths src --ignore-src -r -y
 
 # first source the python env
 source $virtual_python_dir/activate
