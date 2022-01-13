@@ -1,0 +1,42 @@
+#Parameters named as in
+#Optimization-Based Autonomous Racingof 1:43 Scale RC Cars
+#Alexander Liniger, Alexander Domahidi and Manfred Morari
+# https://onlinelibrary.wiley.com/doi/abs/10.1002/oca.2123
+m: 0.041 #[kg]
+l_f: 0.03 #[m]
+l_r: 0.033 #[m]
+Iz:  0.00006 #[kg*m^3]
+
+#pajecka and motor coefficients
+B_f: 2.58
+B_r: 3.38
+C_f: 1.2
+C_r: 1.29
+C_m1: 0.287
+C_m2: 0.0545
+C_roll: 0.03
+C_d: 0.001
+D_f: 0.17
+D_r: 0.19
+
+# box constraints
+# velocity
+v_max: 5 # max long vel [m/s]
+v_min: -0.01 #0.05 # min long vel [m/s]
+
+# steering
+delta_min: -0.40  # minimum steering angle [rad]
+delta_max: 0.40  # maximum steering angle [rad]
+
+deltadot_min: -2  # minimum steering angle cahgne[rad/s]
+deltadot_max: 2 # maximum steering angle cahgne[rad/s]
+
+d_min: -1.0
+d_max: 1.0
+
+
+# Weight
+Q_pos: 100.0
+Q_psi: 0.0
+Q_vel: 5
+Q_u: 0.1
