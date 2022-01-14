@@ -5,7 +5,7 @@ import casadi
 from casadi import SX
 import yaml
 
-class PlanningBase():
+class MPCC():
     def __init__(self, Tf, N, params_file = 'modelparams.yaml'):
         """
         Base Class of the trajectory planning controller using ACADOS
@@ -265,13 +265,13 @@ class PlanningBase():
         # self.ocp.solver_options.nlp_solver_max_iter = 50
         # self.ocp.solver_options.qp_solver_iter_max = 100
 
-        self.ocp.solver_options.tol = 1e-2
+        self.ocp.solver_options.tol = 1e-4
 
         self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_tracking_acados.json")
 
-    def solve(self, ref_traj, x_cur, x_init = None, u_init = None):
+    def solve(self, ref, x_cur, x_init = None, u_init = None):
         for stageidx  in range(self.N):
-            p_val = ref_traj[:,stageidx]
+            p_val = ref[:,stageidx]
             self.acados_solver.set(stageidx, "p", p_val)
             
             # warm start

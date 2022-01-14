@@ -1,1 +1,1 @@
-from .mpc import MPC
+from .mpcc_kin import MPCC
