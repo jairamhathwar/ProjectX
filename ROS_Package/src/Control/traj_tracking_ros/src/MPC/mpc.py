@@ -44,8 +44,7 @@ class RefTraj:
         return t_interp, x_ref
 
 class MPC:
-    def __init__(self, T = 1, N = 10,
-                    dyn_model = True, 
+    def __init__(self, T = 1, N = 10, 
                     pose_topic = '/zed2/zed_node/pose',
                     ref_traj_topic = 'planning/trajectory',
                     controller_topic = 'control/servo_control',
