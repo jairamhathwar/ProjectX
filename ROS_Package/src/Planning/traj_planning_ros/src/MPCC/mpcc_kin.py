@@ -162,7 +162,7 @@ class MPCC():
         '''
         # State Constraint
         # initial constraint
-        self.ocp.constraints.x0 = np.zeros(5)
+        self.ocp.constraints.x0 = np.zeros(7)
         # State: [X, Y, psi: heading, V: speed, d: motor duty cycle, delta: steering angle, theta: progress]
         v_min = self.params['v_min']
         v_max = self.params['v_max']
@@ -188,11 +188,11 @@ class MPCC():
         deltadot_max = self.params['deltadot_max']  # maximum steering angle cahgne[rad/s]
         
         thetadot_min = 0.0 # do not allow progress to decrease
-        thetadot_max = 100.0
+        thetadot_max = 1e15
 
-        self.ocp.constraints.idxbu = np.array([0,1,2])
-        self.ocp.constraints.lbu = np.array([ddot_min, deltadot_min, thetadot_min])
-        self.ocp.constraints.ubu = np.array([ddot_max, deltadot_max, thetadot_max])
+        self.ocp.constraints.idxbu = np.array([1,2])
+        self.ocp.constraints.lbu = np.array([deltadot_min, thetadot_min])
+        self.ocp.constraints.ubu = np.array([deltadot_max, thetadot_max])
 
         ''' Set external constraints'''
         # First external constraints is the road bound constraint
@@ -200,9 +200,11 @@ class MPCC():
         # we want to make sure the vehicle stay in the road where
         # the right edge is the upper bound, and left edge is the 
         # lower bound
-        con0 = e_c
+        
         rd_right = SX.sym('rd_right') # upper bound 
         rd_left = SX.sym('rd_left') #negative lower bound
+        con_right = rd_right - e_c # should be positive
+        con_left = rd_left + e_c # should be positive
 
         # Object avodiance
         obj_1_x = SX.sym('obj_1_x')
@@ -215,11 +217,11 @@ class MPCC():
         dy_1 = (obj_1_y - pos_Y)
         con1 = dx_1*dx_1*obj_1_a + 2*obj_1_b*dx_1*dy_1 + dy_1*dy_1*obj_1_c
 
-        self.acados_model.con_h_expr = casadi.vertcat(
-                con0, con1
-            )   
-        self.ocp.constraints.lh = np.array([-rd_left, 1])
-        self.ocp.constraints.uh = np.array([rd_right, 1e15])
+        # self.acados_model.con_h_expr = casadi.vertcat(
+        #         con_right, con_left#, con1
+        #     )   
+        # self.ocp.constraints.lh = np.array([0,0])
+        # self.ocp.constraints.uh = np.array([1e15, 1e15])
 
         '''
         use "p" variable in the acados to handle time-varing variables,
@@ -245,7 +247,7 @@ class MPCC():
         '''
         This function setup parameters in ACADOS
         '''
-        self.define_sys
+        self.define_sys()
 
         self.ocp.model = self.acados_model
 
@@ -276,12 +278,12 @@ class MPCC():
             
             # warm start
             if x_init is not None:
-                self.acados_solver.set(stageidx, "x", x_init[:, stageidx])
+                self.acados_solver.set(stageidx, "x", x_init[stageidx,:])
             else:
                 self.acados_solver.set(stageidx, "x", x_cur)
 
             if u_init is not None:
-                self.acados_solver.set(stageidx, "u", u_init[:, stageidx])
+                self.acados_solver.set(stageidx, "u", u_init[stageidx,:])
 
         # set initial state
         self.acados_solver.set(0, "lbx", x_cur)
@@ -289,6 +291,7 @@ class MPCC():
 
         # solve the system
         self.acados_solver.solve()
+        self.acados_solver.print_statistics()
         
         x_sol = []
         u_sol = []
