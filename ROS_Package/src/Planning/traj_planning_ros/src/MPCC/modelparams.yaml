@@ -21,23 +21,24 @@ D_r: 0.19
 
 # box constraints
 # velocity
-v_max: 5 # max long vel [m/s]
-v_min: -0.01 #0.05 # min long vel [m/s]
+v_max: 2 # max long vel [m/s]
+v_min: 0 #0.05 # min long vel [m/s]
 
 # steering
 delta_min: -0.40  # minimum steering angle [rad]
 delta_max: 0.40  # maximum steering angle [rad]
 
-deltadot_min: -2  # minimum steering angle cahgne[rad/s]
-deltadot_max: 2 # maximum steering angle cahgne[rad/s]
+deltadot_min: -2.0  # minimum steering angle cahgne[rad/s]
+deltadot_max: 2.0 # maximum steering angle cahgne[rad/s]
 
 d_min: -1.0
 d_max: 1.0
 
 
 # Weight
-Q_c: 100.0
+
+Q_c: 10
 Q_l: 1000.0
-Q_theta: 10
-R_d: 1
-R_delta: 1
+Q_theta: 1
+R_d: 0.001
+R_delta: 0 #0.001 #0.01

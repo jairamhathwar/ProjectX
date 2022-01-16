@@ -104,8 +104,7 @@ class MPCC():
         
         # control input
         u = casadi.vertcat(d_dot, delta_dot, theta_dot)
-        F_x = (casadi.if_else(d>0,(C_m1-C_m2*vel_x),C_m2*vel_x)*d-C_roll-C_d*vel_x*vel_x)
-
+        F_x = casadi.if_else(d>=0,(C_m1-C_m2*vel_x),C_m2*vel_x)*d-C_roll-C_d*vel_x*vel_x
         # system dynamics
         f_expl = casadi.vertcat(
             vel*casadi.cos(psi+beta), # X_dot
@@ -173,7 +172,7 @@ class MPCC():
         delta_min = self.params['delta_min']
         delta_max = self.params['delta_max']
 
-        self.ocp.constraints.idxbx = np.array([3, 4, 5])
+        self.ocp.constraints.idxbx = np.array([3,4,5])
         self.ocp.constraints.lbx = np.array([v_min, d_min, delta_min])
         self.ocp.constraints.ubx = np.array([v_max, d_max, delta_max])
 
@@ -188,11 +187,11 @@ class MPCC():
         deltadot_max = self.params['deltadot_max']  # maximum steering angle cahgne[rad/s]
         
         thetadot_min = 0.0 # do not allow progress to decrease
-        thetadot_max = 1e15
+        thetadot_max = 100
 
-        self.ocp.constraints.idxbu = np.array([1,2])
-        self.ocp.constraints.lbu = np.array([deltadot_min, thetadot_min])
-        self.ocp.constraints.ubu = np.array([deltadot_max, thetadot_max])
+        self.ocp.constraints.idxbu = np.array([0, 1,2])
+        self.ocp.constraints.lbu = np.array([ddot_min, deltadot_min, thetadot_min])
+        self.ocp.constraints.ubu = np.array([ddot_max, deltadot_max, thetadot_max])
 
         ''' Set external constraints'''
         # First external constraints is the road bound constraint
@@ -217,11 +216,11 @@ class MPCC():
         dy_1 = (obj_1_y - pos_Y)
         con1 = dx_1*dx_1*obj_1_a + 2*obj_1_b*dx_1*dy_1 + dy_1*dy_1*obj_1_c
 
-        # self.acados_model.con_h_expr = casadi.vertcat(
-        #         con_right, con_left#, con1
-        #     )   
-        # self.ocp.constraints.lh = np.array([0,0])
-        # self.ocp.constraints.uh = np.array([1e15, 1e15])
+        self.acados_model.con_h_expr = casadi.vertcat(
+                con_right, con_left#, con1
+            )   
+        self.ocp.constraints.lh = np.array([0,0])
+        self.ocp.constraints.uh = np.array([1e15, 1e15])
 
         '''
         use "p" variable in the acados to handle time-varing variables,
@@ -255,7 +254,7 @@ class MPCC():
         # set QP solver and integration
         self.ocp.dims.N = self.N
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'#'FULL_CONDENSING_QPOASES'#
+        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'#'FULL_CONDENSING_QPOASES'# 
         self.ocp.solver_options.nlp_solver_type = "SQP_RTI" #"SQP"# 
         self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
         #self.ocp.solver_options.levenberg_marquardt = 1e-3
@@ -267,7 +266,7 @@ class MPCC():
         # self.ocp.solver_options.nlp_solver_max_iter = 50
         # self.ocp.solver_options.qp_solver_iter_max = 100
 
-        self.ocp.solver_options.tol = 1e-4
+        self.ocp.solver_options.tol = 1e-3
 
         self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_tracking_acados.json")
 
@@ -279,8 +278,8 @@ class MPCC():
             # warm start
             if x_init is not None:
                 self.acados_solver.set(stageidx, "x", x_init[stageidx,:])
-            else:
-                self.acados_solver.set(stageidx, "x", x_cur)
+            # else:
+            #     self.acados_solver.set(stageidx, "x", x_cur)
 
             if u_init is not None:
                 self.acados_solver.set(stageidx, "u", u_init[stageidx,:])

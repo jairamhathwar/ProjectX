@@ -1,6 +1,6 @@
 {
-    "acados_include_path": "/home/zixuzhang/Documents/GitRepo/acados/include",
-    "acados_lib_path": "/home/zixuzhang/Documents/GitRepo/acados/lib",
+    "acados_include_path": "/home/zixu/Data/Git_Repo/acados/include",
+    "acados_lib_path": "/home/zixu/Data/Git_Repo/acados/lib",
     "code_export_directory": "c_generated_code",
     "constraints": {
         "C": [],
@@ -9,6 +9,7 @@
         "constr_type": "BGH",
         "constr_type_e": "BGH",
         "idxbu": [
+            0,
             1,
             2
         ],
@@ -46,11 +47,12 @@
         "idxsphi": [],
         "idxsphi_e": [],
         "lbu": [
+            -100.0,
             -2.0,
             0.0
         ],
         "lbx": [
-            -0.01,
+            0.0,
             -1.0,
             -0.4
         ],
@@ -66,7 +68,10 @@
         "lbx_e": [],
         "lg": [],
         "lg_e": [],
-        "lh": [],
+        "lh": [
+            0,
+            0
+        ],
         "lh_e": [],
         "lphi": [],
         "lphi_e": [],
@@ -80,11 +85,12 @@
         "lsphi": [],
         "lsphi_e": [],
         "ubu": [
+            100.0,
             2.0,
-            1000000000000000.0
+            100.0
         ],
         "ubx": [
-            5.0,
+            2.0,
             1.0,
             0.4
         ],
@@ -100,7 +106,10 @@
         "ubx_e": [],
         "ug": [],
         "ug_e": [],
-        "uh": [],
+        "uh": [
+            1000000000000000.0,
+            1000000000000000.0
+        ],
         "uh_e": [],
         "uphi": [],
         "uphi_e": [],
@@ -144,15 +153,15 @@
         "zu_e": []
     },
     "dims": {
-        "N": 10,
-        "nbu": 2,
+        "N": 20,
+        "nbu": 3,
         "nbx": 3,
         "nbx_0": 7,
         "nbx_e": 0,
         "nbxe_0": 7,
         "ng": 0,
         "ng_e": 0,
-        "nh": 0,
+        "nh": 2,
         "nh_e": 0,
         "np": 11,
         "nphi": 0,
@@ -243,7 +252,7 @@
         "samplingtime": "t0"
     },
     "solver_options": {
-        "Tsim": 0.2,
+        "Tsim": 0.05,
         "alpha_min": 0.05,
         "alpha_reduction": 0.7,
         "collocation_type": "GAUSS_LEGENDRE",
@@ -260,10 +269,10 @@
         "model_external_shared_lib_name": null,
         "nlp_solver_max_iter": 100,
         "nlp_solver_step_length": 1.0,
-        "nlp_solver_tol_comp": 0.0001,
-        "nlp_solver_tol_eq": 0.0001,
-        "nlp_solver_tol_ineq": 0.0001,
-        "nlp_solver_tol_stat": 0.0001,
+        "nlp_solver_tol_comp": 0.001,
+        "nlp_solver_tol_eq": 0.001,
+        "nlp_solver_tol_ineq": 0.001,
+        "nlp_solver_tol_stat": 0.001,
         "nlp_solver_type": "SQP_RTI",
         "print_level": 0,
         "qp_solver": "PARTIAL_CONDENSING_HPIPM",
@@ -276,6 +285,16 @@
         "qp_solver_warm_start": 0,
         "regularize_method": null,
         "sim_method_jac_reuse": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
             0,
             0,
             0,
@@ -298,6 +317,16 @@
             4,
             4,
             4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
             4
         ],
         "sim_method_num_steps": [
@@ -310,20 +339,40 @@
             1,
             1,
             1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
             1
         ],
-        "tf": 2,
+        "tf": 1,
         "time_steps": [
-            0.2,
-            0.2,
-            0.2,
-            0.2,
-            0.2,
-            0.2,
-            0.2,
-            0.2,
-            0.2,
-            0.2
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05,
+            0.05
         ]
     }
 }
