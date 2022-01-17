@@ -35,13 +35,19 @@ d_min: -1.0
 d_max: 1.0
 
 
-# Weight
+# # # Weight
+# # # good traking
+# Q_c: 100 # speed
+# Q_l: 1000 # a lrage value
+# Q_theta: 1
 
-#Q_c: 200 # tracking
-Q_c: 30 # speed
-Q_l: 100 # a lrage value
-Q_theta: 0.5
+# # too small is bad
+# R_d: 0.001
+# R_delta: 0.01 
 
-# too small is bad
-R_d: 0.01
-R_delta: 1 
+
+Q_c: 10 # cost for contouring error
+Q_l:  100 # lag error cost
+Q_theta: 1 # advancing parameter reward
+R_d: 0.001
+R_delta: 0.01

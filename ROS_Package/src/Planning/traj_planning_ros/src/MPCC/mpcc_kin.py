@@ -151,8 +151,10 @@ class MPCC():
         e_c = casadi.sin(phi_ref)*(pos_X - x_d) - casadi.cos(phi_ref)*(pos_Y - y_d)
         e_l = -casadi.cos(phi_ref)*(pos_X - x_d) - casadi.sin(phi_ref)*(pos_Y - y_d)
 
+
+
         self.acados_model.cost_expr_ext_cost = e_c*Q_c*e_c + e_l*Q_l*e_l \
-                                    - Q_theta*theta_dot + d_dot*R_d*d_dot \
+                                    -Q_theta*theta_dot*self.dt + d_dot*R_d*d_dot \
                                     + delta_dot*R_delta*delta_dot
 
         self.ocp.cost.cost_type = "EXTERNAL"
@@ -173,9 +175,9 @@ class MPCC():
         delta_min = self.params['delta_min']
         delta_max = self.params['delta_max']
 
-        self.ocp.constraints.idxbx = np.array([3,4,5])
-        self.ocp.constraints.lbx = np.array([v_min, d_min, delta_min])
-        self.ocp.constraints.ubx = np.array([v_max, d_max, delta_max])
+        self.ocp.constraints.idxbx = np.array([3,4,5, 6])
+        self.ocp.constraints.lbx = np.array([v_min, d_min, delta_min, 0])
+        self.ocp.constraints.ubx = np.array([v_max, d_max, delta_max, 100])
 
         # Control input constraints
         # Control: [d_dot: motor duty cycle, delta_dot: steering rate]
@@ -255,10 +257,10 @@ class MPCC():
         # set QP solver and integration
         self.ocp.dims.N = self.N
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver =  'FULL_CONDENSING_QPOASES'#  'PARTIAL_CONDENSING_HPIPM'#
-        self.ocp.solver_options.nlp_solver_type = "SQP" #"SQP"# 
+        self.ocp.solver_options.qp_solver =  'FULL_CONDENSING_QPOASES'#'PARTIAL_CONDENSING_HPIPM'#   
+        self.ocp.solver_options.nlp_solver_type = "SQP" #"SQP_RTI"# 
         self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
-        self.ocp.solver_options.levenberg_marquardt = 1e-3
+        #self.ocp.solver_options.levenberg_marquardt = 1e-3
         self.ocp.solver_options.integrator_type = "ERK"
 
         # initial value for p

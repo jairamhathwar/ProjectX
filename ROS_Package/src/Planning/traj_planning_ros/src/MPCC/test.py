@@ -22,11 +22,11 @@ if __name__ == '__main__':
     path_length = interp_path.getLength()/100.0
     
     T = 1
-    n = 10
-    num_itr = 20
+    n = 20
+    num_itr = 5
     planner = MPCC(T, n)
     
-    x_cur = np.array([0, -0.05, 0, 0, 0, 0, 0])    
+    x_cur = np.array([0, 0, 0, 0, 0, 0, 0])    
     x_init = np.zeros((n,7))
     u_init = np.zeros((n,3))
     theta= x_init[:,-1]
@@ -37,8 +37,8 @@ if __name__ == '__main__':
         s = theta/path_length
         ref[:2,:] = interp_path.getValue(s).T/100.0
         ref[2, :] = theta
-        ref[4,:] = 0.06
-        ref[5,:] = 0.06
+        ref[4,:] = 0.09
+        ref[5,:] = 0.09
         ref[6:8,:] = 0
         ref[8,:] = 1
         ref[9,:] = 0
@@ -51,6 +51,8 @@ if __name__ == '__main__':
     # print(x_init)
     # print(u_init)
     print(time()-t0)
+
+    print( interp_path.projectPoint(x_init[-1,:2]*100)[0]*path_length)
     
     env.plot_env(5)
     #env.scene_ax.plot(waypoints[:,0], waypoints[:,1], '--')
