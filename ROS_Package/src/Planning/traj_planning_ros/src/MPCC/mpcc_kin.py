@@ -187,7 +187,7 @@ class MPCC():
         deltadot_max = self.params['deltadot_max']  # maximum steering angle cahgne[rad/s]
         
         thetadot_min = 0.0 # do not allow progress to decrease
-        thetadot_max = 100
+        thetadot_max = 4
 
         self.ocp.constraints.idxbu = np.array([0, 1,2])
         self.ocp.constraints.lbu = np.array([ddot_min, deltadot_min, thetadot_min])
@@ -254,7 +254,7 @@ class MPCC():
         # set QP solver and integration
         self.ocp.dims.N = self.N
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'#'FULL_CONDENSING_QPOASES'# 
+        self.ocp.solver_options.qp_solver =  'FULL_CONDENSING_QPOASES'# 'PARTIAL_CONDENSING_HPIPM'#
         self.ocp.solver_options.nlp_solver_type = "SQP_RTI" #"SQP"# 
         self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
         #self.ocp.solver_options.levenberg_marquardt = 1e-3
@@ -265,12 +265,12 @@ class MPCC():
 
         # self.ocp.solver_options.nlp_solver_max_iter = 50
         # self.ocp.solver_options.qp_solver_iter_max = 100
-
-        self.ocp.solver_options.tol = 1e-3
+        #self.ocp.solver_options.nlp_solver_step_length = 0.5
+        self.ocp.solver_options.tol = 1e-4
 
         self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_tracking_acados.json")
 
-    def solve(self, ref, x_cur, x_init = None, u_init = None):
+    def solve_itr(self, ref, x_cur, x_init = None, u_init = None):
         for stageidx  in range(self.N):
             p_val = ref[:,stageidx]
             self.acados_solver.set(stageidx, "p", p_val)
@@ -300,7 +300,6 @@ class MPCC():
 
         x_sol = np.array(x_sol)
         u_sol = np.array(u_sol)
-        return x_sol, u_sol                                     
-                             
+        return x_sol, u_sol              
 
     

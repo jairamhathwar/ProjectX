@@ -37,8 +37,10 @@ d_max: 1.0
 
 # Weight
 
-Q_c: 10
-Q_l: 1000.0
+Q_c: 100
+Q_l: 1000 # a lrage value
 Q_theta: 1
-R_d: 0.001
-R_delta: 0 #0.001 #0.01
+
+# too small is bad
+R_d: 0.05 
+R_delta: 0.1 

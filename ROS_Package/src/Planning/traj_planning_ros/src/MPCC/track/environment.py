@@ -108,7 +108,7 @@ class Environment:
 
 
     def plot_env(self, t,dt = None):
-        if self.scene_ax is None:
+        if True:#self.scene_ax is None:
             self.scene_ax = plt.axes()
             self.scene_ax.axis('equal')
             self.road.plot(self.scene_ax)
