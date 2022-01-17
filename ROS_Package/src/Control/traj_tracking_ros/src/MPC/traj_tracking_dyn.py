@@ -3,7 +3,7 @@ from casadi import SX
 import numpy as np
 import yaml
 from traj_tracking_base import TrajTrackingBase
-
+import matplotlib.pyplot as plt
 
 class TrajTrackingDyn(TrajTrackingBase):
     def __init__(self, Tf, N, params_file = 'modelparams.yaml'):
@@ -288,4 +288,18 @@ if __name__ == '__main__':
 
 
     ocp = TrajTrackingDyn(Tf, N)
-    ocp.solve(ref_traj, x_0)#, state_init, u_init)
+    x_sol, u_sol = ocp.solve(ref_traj, x_0)#, state_init, u_init)
+
+    #print(x_sol[:,0] - ref_traj[0,:])
+    # print(u_sol)
+    #print(ref_traj.T)
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.plot(x_sol[:,0], x_sol[:,1],'-.')
+    ax1.plot(ref_traj[0,:], ref_traj[1,:], '.')
+    
+    ax2.plot(x_sol[:,2],'-') # vx
+    ax2.plot(ref_traj[-1,:],'-') # vx
+    ax2.plot(x_sol[:,3],'.') # vy
+    ax2.plot(u_sol[:,0],'-.') # d
+    ax2.plot(u_sol[:,1],'--') # delta
+    plt.show()

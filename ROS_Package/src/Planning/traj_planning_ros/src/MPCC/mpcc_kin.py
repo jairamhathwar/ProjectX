@@ -21,6 +21,7 @@ class MPCC():
         self.Tf = Tf
         # number of discrete step
         self.N = N
+        self.dt = Tf/N
 
         self.acados_solver = None
 
@@ -180,14 +181,14 @@ class MPCC():
         # Control: [d_dot: motor duty cycle, delta_dot: steering rate]
         
         # since we can contorl d directly, just assign a large value to allow immediate change of d
-        ddot_min = -100.0
-        ddot_max = 100.0
+        ddot_min = -(d_max-d_min)/self.dt
+        ddot_max = (d_max-d_min)/self.dt
         
         deltadot_min = self.params['deltadot_min']  # minimum steering angle cahgne[rad/s]
         deltadot_max = self.params['deltadot_max']  # maximum steering angle cahgne[rad/s]
         
         thetadot_min = 0.0 # do not allow progress to decrease
-        thetadot_max = 4
+        thetadot_max = 3*v_max
 
         self.ocp.constraints.idxbu = np.array([0, 1,2])
         self.ocp.constraints.lbu = np.array([ddot_min, deltadot_min, thetadot_min])
@@ -254,19 +255,19 @@ class MPCC():
         # set QP solver and integration
         self.ocp.dims.N = self.N
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver =  'FULL_CONDENSING_QPOASES'# 'PARTIAL_CONDENSING_HPIPM'#
-        self.ocp.solver_options.nlp_solver_type = "SQP_RTI" #"SQP"# 
+        self.ocp.solver_options.qp_solver =  'FULL_CONDENSING_QPOASES'#  'PARTIAL_CONDENSING_HPIPM'#
+        self.ocp.solver_options.nlp_solver_type = "SQP" #"SQP"# 
         self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
-        #self.ocp.solver_options.levenberg_marquardt = 1e-3
+        self.ocp.solver_options.levenberg_marquardt = 1e-3
         self.ocp.solver_options.integrator_type = "ERK"
 
         # initial value for p
         self.ocp.parameter_values = np.zeros(self.acados_model.p.size()[0])
 
-        # self.ocp.solver_options.nlp_solver_max_iter = 50
-        # self.ocp.solver_options.qp_solver_iter_max = 100
+        self.ocp.solver_options.nlp_solver_max_iter = 50
+        self.ocp.solver_options.qp_solver_iter_max = 50
         #self.ocp.solver_options.nlp_solver_step_length = 0.5
-        self.ocp.solver_options.tol = 1e-4
+        self.ocp.solver_options.tol = 1e-3
 
         self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_tracking_acados.json")
 
@@ -290,7 +291,7 @@ class MPCC():
 
         # solve the system
         self.acados_solver.solve()
-        self.acados_solver.print_statistics()
+        #self.acados_solver.print_statistics()
         
         x_sol = []
         u_sol = []

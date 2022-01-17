@@ -37,10 +37,11 @@ d_max: 1.0
 
 # Weight
 
-Q_c: 100
-Q_l: 1000 # a lrage value
-Q_theta: 1
+#Q_c: 200 # tracking
+Q_c: 30 # speed
+Q_l: 100 # a lrage value
+Q_theta: 0.5
 
 # too small is bad
-R_d: 0.05 
-R_delta: 0.1 
+R_d: 0.01
+R_delta: 1 
