@@ -10,7 +10,7 @@ from mpcc_kin import MPCC
 if __name__ == '__main__':
         
     env = Environment()
-    env.road.add_straight(50, [1,1], None, 9)
+    env.road.add_straight(30, [1,1], None, 9)
     env.road.add_curve(50, -50, -np.pi/2, [1,1], None, 9)
     env.road.add_curve(50, -50, np.pi/2, [1,1], None, 9)
     env.road.add_straight(100, [1,1], None, 9)
@@ -26,8 +26,8 @@ if __name__ == '__main__':
     num_itr = 5
     planner = MPCC(T, n)
     
-    x_cur = np.array([0, 0, 0, 0, 0, 0, 0])    
-    x_init = np.zeros((n,7))
+    x_cur = np.array([0, 0, 0, 0, 0, 0])    
+    x_init = np.zeros((n,6))
     u_init = np.zeros((n,3))
     theta= x_init[:,-1]
 
@@ -64,8 +64,12 @@ if __name__ == '__main__':
     x = np.arange(n)
     plt.plot(x, x_init[:,2], label = 'psi')
     plt.plot(x, x_init[:,3], label = 'v')
-    plt.plot(x, x_init[:,4], label = 'd')
-    plt.plot(x, x_init[:,5], label = 'delta')
+    plt.plot(x, x_init[:,4], label = 'delta')
+    plt.plot(x, x_init[:,5], label = 'theta')
+    plt.plot(x, u_init[:,0], label = 'a')
+
+    a_lat = np.abs(x_init[:,3]*x_init[:,3]*np.tan(x_init[:,4])/(0.063)) 
+    plt.plot(x, a_lat, label = 'a_lat')
     plt.legend()
 
     

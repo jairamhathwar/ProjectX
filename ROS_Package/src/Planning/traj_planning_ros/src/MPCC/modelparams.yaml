@@ -21,7 +21,7 @@ D_r: 0.19
 
 # box constraints
 # velocity
-v_max: 2 # max long vel [m/s]
+v_max: 3.5 # max long vel [m/s]
 v_min: 0 #0.05 # min long vel [m/s]
 
 # steering
@@ -31,8 +31,8 @@ delta_max: 0.40  # maximum steering angle [rad]
 deltadot_min: -2.0  # minimum steering angle cahgne[rad/s]
 deltadot_max: 2.0 # maximum steering angle cahgne[rad/s]
 
-d_min: -1.0
-d_max: 1.0
+a_min: -5.0
+a_max: 5.0
 
 
 # # # Weight
@@ -46,8 +46,8 @@ d_max: 1.0
 # R_delta: 0.01 
 
 
-Q_c: 10 # cost for contouring error
+Q_c: 15 # cost for contouring error
 Q_l:  100 # lag error cost
-Q_theta: 1 # advancing parameter reward
-R_d: 0.001
+Q_theta: 3 # advancing parameter reward
+R_d: 0.01
 R_delta: 0.01

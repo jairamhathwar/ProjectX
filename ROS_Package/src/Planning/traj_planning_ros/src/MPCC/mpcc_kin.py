@@ -60,7 +60,6 @@ class MPCC():
                 Y_dot = V*sin(psi+beta)
                 psi_dot = V/l_r*sin(beta)
                 V_dot = accel
-                d_dot = d_dot
                 delta_dot = delta_dot
                 theta_dot = theta_dot
             with:
@@ -82,10 +81,9 @@ class MPCC():
         vel = SX.sym('vel')
         vel_dot = SX.sym('vel_dot')
 
-        # motor duty cycle
-        d = SX.sym('d')
-        d_dot = SX.sym('d_dot')
-
+        # acceleration
+        a = SX.sym('a')
+        
         # Steering angle
         delta = SX.sym('delta')
         delta_dot = SX.sym('delta_dot')
@@ -94,25 +92,24 @@ class MPCC():
         theta = SX.sym('theta')
         theta_dot = SX.sym('theta_dot')
         
-        # slip angle
-        beta = casadi.atan2(casadi.tan(delta)*l_r, (l_f+l_r))
-        vel_x = vel*casadi.cos(beta)
+        # # slip angle
+        # beta = 0 #casadi.atan2(casadi.tan(delta)*l_r, (l_f+l_r))
+        # vel_x = vel*casadi.cos(beta)
         
         # state vector
-        x = casadi.vertcat(pos_X, pos_Y, psi, vel, d, delta, theta)
+        x = casadi.vertcat(pos_X, pos_Y, psi, vel, delta, theta)
         x_dot = casadi.vertcat(pos_X_dot, pos_Y_dot, psi_dot, 
-                               vel_dot, d_dot, delta_dot, theta_dot)
+                               vel_dot, delta_dot, theta_dot)
         
         # control input
-        u = casadi.vertcat(d_dot, delta_dot, theta_dot)
-        F_x = casadi.if_else(d>=0,(C_m1-C_m2*vel_x),C_m2*vel_x)*d-C_roll-C_d*vel_x*vel_x
+        u = casadi.vertcat(a, delta_dot, theta_dot)
+        #F_x = casadi.if_else(d>=0,(C_m1-C_m2*vel_x),C_m2*vel_x)*d-C_roll-C_d*vel_x*vel_x
         # system dynamics
         f_expl = casadi.vertcat(
-            vel*casadi.cos(psi+beta), # X_dot
-            vel*casadi.sin(psi+beta), # Y_dot
-            vel/l_r*casadi.sin(beta), # psi_dot
-            F_x/m, # accel
-            d_dot,
+            vel*casadi.cos(psi), # X_dot
+            vel*casadi.sin(psi), # Y_dot
+            vel/(l_r+l_f)*casadi.tan(delta), # psi_dot
+            a, # accel
             delta_dot,
             theta_dot
         )
@@ -154,7 +151,7 @@ class MPCC():
 
 
         self.acados_model.cost_expr_ext_cost = e_c*Q_c*e_c + e_l*Q_l*e_l \
-                                    -Q_theta*theta_dot*self.dt + d_dot*R_d*d_dot \
+                                    -Q_theta*theta_dot*self.dt + a*R_d*a \
                                     + delta_dot*R_delta*delta_dot
 
         self.ocp.cost.cost_type = "EXTERNAL"
@@ -164,28 +161,24 @@ class MPCC():
         '''
         # State Constraint
         # initial constraint
-        self.ocp.constraints.x0 = np.zeros(7)
+        self.ocp.constraints.x0 = np.zeros(6)
         # State: [X, Y, psi: heading, V: speed, d: motor duty cycle, delta: steering angle, theta: progress]
         v_min = self.params['v_min']
         v_max = self.params['v_max']
         
-        d_min = self.params['d_min']
-        d_max = self.params['d_max']
+        a_min = self.params['a_min']
+        a_max = self.params['a_max']
 
         delta_min = self.params['delta_min']
         delta_max = self.params['delta_max']
 
-        self.ocp.constraints.idxbx = np.array([3,4,5, 6])
-        self.ocp.constraints.lbx = np.array([v_min, d_min, delta_min, 0])
-        self.ocp.constraints.ubx = np.array([v_max, d_max, delta_max, 100])
+        self.ocp.constraints.idxbx = np.array([3,4,5])
+        self.ocp.constraints.lbx = np.array([v_min, delta_min, 0])
+        self.ocp.constraints.ubx = np.array([v_max, delta_max, 100])
 
         # Control input constraints
         # Control: [d_dot: motor duty cycle, delta_dot: steering rate]
-        
-        # since we can contorl d directly, just assign a large value to allow immediate change of d
-        ddot_min = -(d_max-d_min)/self.dt
-        ddot_max = (d_max-d_min)/self.dt
-        
+
         deltadot_min = self.params['deltadot_min']  # minimum steering angle cahgne[rad/s]
         deltadot_max = self.params['deltadot_max']  # maximum steering angle cahgne[rad/s]
         
@@ -193,8 +186,8 @@ class MPCC():
         thetadot_max = 3*v_max
 
         self.ocp.constraints.idxbu = np.array([0, 1,2])
-        self.ocp.constraints.lbu = np.array([ddot_min, deltadot_min, thetadot_min])
-        self.ocp.constraints.ubu = np.array([ddot_max, deltadot_max, thetadot_max])
+        self.ocp.constraints.lbu = np.array([a_min, deltadot_min, thetadot_min])
+        self.ocp.constraints.ubu = np.array([a_max, deltadot_max, thetadot_max])
 
         ''' Set external constraints'''
         # First external constraints is the road bound constraint
@@ -202,7 +195,7 @@ class MPCC():
         # we want to make sure the vehicle stay in the road where
         # the right edge is the upper bound, and left edge is the 
         # lower bound
-        
+    
         rd_right = SX.sym('rd_right') # upper bound 
         rd_left = SX.sym('rd_left') #negative lower bound
         con_right = rd_right - e_c # should be positive
@@ -219,11 +212,15 @@ class MPCC():
         dy_1 = (obj_1_y - pos_Y)
         con1 = dx_1*dx_1*obj_1_a + 2*obj_1_b*dx_1*dy_1 + dy_1*dy_1*obj_1_c
 
+        # lateral acceleration
+        #R = casadi.tan(delta)*(l_r+l_f)
+        a_lateral = vel*vel*casadi.tan(delta)/(l_r+l_f)
+
         self.acados_model.con_h_expr = casadi.vertcat(
-                con_right, con_left#, con1
+                a_lateral, con_right, con_left#, con1
             )   
-        self.ocp.constraints.lh = np.array([0,0])
-        self.ocp.constraints.uh = np.array([1e15, 1e15])
+        self.ocp.constraints.lh = np.array([-5, 0,0])
+        self.ocp.constraints.uh = np.array([5, 1e15, 1e15])
 
         '''
         use "p" variable in the acados to handle time-varing variables,
@@ -266,7 +263,7 @@ class MPCC():
         # initial value for p
         self.ocp.parameter_values = np.zeros(self.acados_model.p.size()[0])
 
-        self.ocp.solver_options.nlp_solver_max_iter = 50
+        self.ocp.solver_options.nlp_solver_max_iter = 10
         self.ocp.solver_options.qp_solver_iter_max = 50
         #self.ocp.solver_options.nlp_solver_step_length = 0.5
         self.ocp.solver_options.tol = 1e-3
