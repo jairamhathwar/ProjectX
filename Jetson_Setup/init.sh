@@ -28,6 +28,10 @@ wget https://bootstrap.pypa.io/get-pip.py
 python3.8 get-pip.py --user
 rm get-pip*
 
+# add pip3.8 to path
+echo "export PATH="$HOME/.local/bin:$PATH"" >> ~/.bashrc
+export PATH="$HOME/.local/bin:$PATH"
+
 # fix dependency
 pip3 install testresources
 
