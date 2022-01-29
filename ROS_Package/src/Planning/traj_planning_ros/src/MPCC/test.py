@@ -10,19 +10,19 @@ from mpcc_kin import MPCC
 if __name__ == '__main__':
         
     env = Environment()
-    env.road.add_straight(30, [1,1], None, 9)
-    env.road.add_curve(50, -50, -np.pi/2, [1,1], None, 9)
-    env.road.add_curve(50, -50, np.pi/2, [1,1], None, 9)
-    env.road.add_straight(100, [1,1], None, 9)
+    env.road.add_straight(50, [1,1], None, 50)
+    env.road.add_curve(100, -100, -np.pi/2, [1,1], None, 50)
+    env.road.add_curve(100, -100, np.pi/2, [1,1], None, 50)
+    env.road.add_straight(200, [1,1], None, 50)
 
-    waypoints, _ = env.road.reference_traj(0, 0, ds = 10)
+    waypoints, _ = env.road.reference_traj(0, 0, ds = 50)
     
     # interp the reference route into B-spline
     interp_path = Curve(x = waypoints[:,0], y = waypoints[:,1], k = 3)
     path_length = interp_path.getLength()/100.0
     
     T = 1
-    n = 20
+    n = 30
     num_itr = 5
     planner = MPCC(T, n)
     
@@ -37,8 +37,8 @@ if __name__ == '__main__':
         s = theta/path_length
         ref[:2,:] = interp_path.getValue(s).T/100.0
         ref[2, :] = theta
-        ref[4,:] = 0.09
-        ref[5,:] = 0.09
+        ref[4,:] = 0.5
+        ref[5,:] = 0.5
         ref[6:8,:] = 0
         ref[8,:] = 1
         ref[9,:] = 0
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     plt.plot(x, x_init[:,5], label = 'theta')
     plt.plot(x, u_init[:,0], label = 'a')
 
-    a_lat = np.abs(x_init[:,3]*x_init[:,3]*np.tan(x_init[:,4])/(0.063)) 
+    a_lat = np.abs(x_init[:,3]*x_init[:,3]*np.tan(x_init[:,4])/(0.257)) 
     plt.plot(x, a_lat, label = 'a_lat')
     plt.legend()
 
