@@ -8,7 +8,7 @@ class ControlNode:
 
         rospy.init_node("keyboard_control_listener", anonymous=True)
 
-        self.pub = rospy.Publisher("/control/servo_control", RCControl, queue_size=50)
+        self.pub = rospy.Publisher("/rc_control", RCControl, queue_size=50)
         self.sub = rospy.Subscriber("/cmd_vel", Twist, self.callback)
         rospy.spin()
         
