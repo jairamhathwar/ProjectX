@@ -38,14 +38,14 @@ CTRL-C to quit
 """
 
 moveBindings = {
-        'i':(1,0,0,0),
-        'o':(1,0,0,1),
+        'i':(0.2,0,0,0),
+        'o':(0.2,0,0,1),
         'j':(0,0,0,-1),
         'l':(0,0,0,1),
-        'u':(1,0,0,-1),
-        ',':(-1,0,0,0),
-        '.':(-1,0,0,-1),
-        'm':(-1,0,0,1),
+        'u':(0.2,0,0,-1),
+        ',':(-0.2,0,0,0),
+        '.':(-0.2,0,0,-1),
+        'm':(-0.2,0,0,1),
         # 'O':(1,-1,0,0),
         # 'I':(1,0,0,0),
         # 'J':(0,1,0,0),
@@ -125,12 +125,12 @@ class PublishThread(threading.Thread):
             self.condition.wait(self.timeout)
 
             # Copy state into twist message.
-            twist.linear.x = self.x * self.speed
-            twist.linear.y = self.y * self.speed
-            twist.linear.z = self.z * self.speed
+            twist.linear.x = self.x 
+            twist.linear.y = self.y 
+            twist.linear.z = self.z 
             twist.angular.x = 0
             twist.angular.y = 0
-            twist.angular.z = self.th * self.turn
+            twist.angular.z = self.th
 
             self.condition.release()
 
@@ -170,7 +170,7 @@ if __name__=="__main__":
     turn = rospy.get_param("~turn", 1)
     # repeat = rospy.get_param("~repeat_rate", 0.0)
     repeat = rospy.get_param("~repeat_rate", 50.0)
-    key_timeout = rospy.get_param("~key_timeout", 0.2)
+    key_timeout = rospy.get_param("~key_timeout", 0.5)
     if key_timeout == 0.0:
         key_timeout = None
 
