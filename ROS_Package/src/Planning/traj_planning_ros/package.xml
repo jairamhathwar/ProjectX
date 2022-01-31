@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>traj_tracking_ros</name>
+  <name>traj_planning_ros</name>
   <version>0.1.0</version>
   <description>The traj_tracking_ros package</description>
 
