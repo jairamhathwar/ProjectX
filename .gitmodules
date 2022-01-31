@@ -1,3 +1,6 @@
 [submodule "ROS_Package/src/Perception/zed-ros-wrapper"]
 	path = ROS_Package/src/Perception/zed-ros-wrapper
 	url = git@github.com:SafeRoboticsLab/zed-ros-wrapper.git
+[submodule "ROS_Package/src/SystemID/vicon_bridge"]
+	path = ROS_Package/src/SystemID/vicon_bridge
+	url = git@github.com:SafeRoboticsLab/vicon_bridge.git
