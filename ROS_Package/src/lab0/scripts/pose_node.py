@@ -22,7 +22,7 @@ class PoseNode:
         self.x_traj.append(x_value)
         self.y_traj.append(y_value)
 
-        while len(self.x_traj) > 50:
+        while len(self.x_traj) > 200:
             self.x_traj.pop(0)
             self.y_traj.pop(0)
         self.lock.release()
@@ -34,13 +34,14 @@ if __name__ == "__main__":
     plt.figure(figsize=(5, 5))
 
     while not rospy.is_shutdown():
-        listener.lock.acquire()
+        
         display.clear_output(wait = True)
         display.display(plt.gcf())
         plt.clf()
-        
+        listener.lock.acquire()
         plt.scatter(listener.x_traj, listener.y_traj)
+        listener.lock.release()
         plt.xlim((-5, 5))
         plt.ylim((-5, 5))
-        plt.pause(0.01)
-        listener.lock.release()
+        plt.pause(0.001)
+        
