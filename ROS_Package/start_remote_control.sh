@@ -2,4 +2,4 @@
 
 source devel/setup.bash
 source jetson.sh
-roslaunch rc_control rc_control_node.launch ControllerTopic:=/rc_control_node/g29_control
+roslaunch vicon_bridge launch_remote.launch
