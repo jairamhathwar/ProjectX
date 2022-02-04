@@ -1,6 +1,6 @@
 {
-    "acados_include_path": "/home/zixu/Data/Git_Repo/acados/include",
-    "acados_lib_path": "/home/zixu/Data/Git_Repo/acados/lib",
+    "acados_include_path": "/home/zixuzhang/Documents/GitRepo/acados/include",
+    "acados_lib_path": "/home/zixuzhang/Documents/GitRepo/acados/lib",
     "code_export_directory": "c_generated_code",
     "constraints": {
         "C": [],
@@ -46,11 +46,11 @@
         "idxsphi_e": [],
         "lbu": [
             -1.0,
-            -2.0
+            -5.5
         ],
         "lbx": [
             -0.01,
-            -0.4
+            -0.35
         ],
         "lbx_0": [
             0.0,
@@ -79,11 +79,11 @@
         "lsphi_e": [],
         "ubu": [
             1.0,
-            2.0
+            5.5
         ],
         "ubx": [
             5.0,
-            0.4
+            0.35
         ],
         "ubx_0": [
             0.0,
@@ -233,7 +233,7 @@
         "samplingtime": "t0"
     },
     "solver_options": {
-        "Tsim": 0.05,
+        "Tsim": 0.1,
         "alpha_min": 0.05,
         "alpha_reduction": 0.7,
         "collocation_type": "GAUSS_LEGENDRE",
@@ -332,28 +332,28 @@
             1,
             1
         ],
-        "tf": 1,
+        "tf": 2,
         "time_steps": [
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1
         ]
     }
 }

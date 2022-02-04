@@ -222,8 +222,8 @@ class TrajTrackingDyn(TrajTrackingBase):
     
 if __name__ == '__main__':
 
-    Tf = 1
-    step = 20
+    Tf = 2
+    step = 10
     N = int(Tf*step)
 
     # angle = np.linspace(0, np.pi/6, N)
@@ -244,7 +244,7 @@ if __name__ == '__main__':
     dangle = np.linspace(np.pi/4/N, 0, N)
     angle = np.cumsum(dangle)
     angle = np.insert(angle[:-1], 0, 0)
-    r = 2
+    r = 4
     
     
     x_ref = r*np.cos(angle)
@@ -256,7 +256,7 @@ if __name__ == '__main__':
     ref_traj = np.stack([x_ref, y_ref, psi_ref, vel_ref])
     
 
-    x_0 = np.array([2, 0,  vel_ref[0], 0, np.pi/2, 0, 0])
+    x_0 = np.array([r, 0,  vel_ref[0], 0, np.pi/2, 0, 0])
     
 
     '''GO straight'''
@@ -298,8 +298,8 @@ if __name__ == '__main__':
     ax1.plot(ref_traj[0,:], ref_traj[1,:], '.')
     
     ax2.plot(x_sol[:,2],'-') # vx
-    ax2.plot(ref_traj[-1,:],'-') # vx
-    ax2.plot(x_sol[:,3],'.') # vy
+    ax2.plot(ref_traj[-1,:],'.') # vx
+    #ax2.plot(x_sol[:,3],'.') # vy
     ax2.plot(u_sol[:,0],'-.') # d
     ax2.plot(u_sol[:,1],'--') # delta
     plt.show()
