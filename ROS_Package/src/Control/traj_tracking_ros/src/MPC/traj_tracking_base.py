@@ -63,11 +63,11 @@ class TrajTrackingBase(ABC):
         # self.ocp.solver_options.nlp_solver_max_iter = 50
         # self.ocp.solver_options.qp_solver_iter_max = 100
 
-        self.ocp.solver_options.tol = 1e-2
+        self.ocp.solver_options.tol = 1e-3
 
         self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_tracking_acados.json")
 
-    def solve(self, ref_traj, x_cur, x_init = None, u_init = None):
+    def solve(self, ref_traj, x_cur, x_init = None, u_init = None, full_sol = True):
         for stageidx  in range(self.N):
             p_val = ref_traj[:,stageidx]
             self.acados_solver.set(stageidx, "p", p_val)
@@ -88,14 +88,18 @@ class TrajTrackingBase(ABC):
         # solve the system
         self.acados_solver.solve()
         
-        x_sol = []
-        u_sol = []
-        for stageidx in range(self.N):
-            x_sol.append(self.acados_solver.get(stageidx, 'x'))
-            u_sol.append(self.acados_solver.get(stageidx, 'u'))
+        if full_sol:
+            x_sol = []
+            u_sol = []
+            for stageidx in range(self.N):
+                x_sol.append(self.acados_solver.get(stageidx, 'x'))
+                u_sol.append(self.acados_solver.get(stageidx, 'u'))
 
-        x_sol = np.array(x_sol)
-        u_sol = np.array(u_sol)
+            x_sol = np.array(x_sol)
+            u_sol = np.array(u_sol)
+        else:
+            x_sol = None
+            u_sol = self.acados_solver.get(0, 'u')
         return x_sol, u_sol                                     
 
 

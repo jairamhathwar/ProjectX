@@ -2,7 +2,7 @@ import casadi
 from casadi import SX
 import numpy as np
 import yaml
-from traj_tracking_base import TrajTrackingBase
+from .traj_tracking_base import TrajTrackingBase
 import matplotlib.pyplot as plt
 
 class TrajTrackingDyn(TrajTrackingBase):
@@ -222,8 +222,8 @@ class TrajTrackingDyn(TrajTrackingBase):
     
 if __name__ == '__main__':
 
-    Tf = 2
-    step = 10
+    Tf = 1
+    step = 20
     N = int(Tf*step)
 
     # angle = np.linspace(0, np.pi/6, N)
@@ -240,23 +240,23 @@ if __name__ == '__main__':
 
     # x_0 = np.array([1.98, -0.02,  vel_ref[0]*0.98, 0, np.pi/2, 0, 0])
     ''' turn and slow down '''
-    dt = 1.0/step
-    dangle = np.linspace(np.pi/4/N, 0, N)
-    angle = np.cumsum(dangle)
-    angle = np.insert(angle[:-1], 0, 0)
-    r = 4
+    # dt = 1.0/step
+    # dangle = np.linspace(np.pi/3/N, np.pi/10/N, N)
+    # angle = np.cumsum(dangle)
+    # angle = np.insert(angle[:-1], 0, 0)
+    # r = 5
     
     
-    x_ref = r*np.cos(angle)
-    y_ref = r*np.sin(angle)
+    # x_ref = r*np.cos(angle)
+    # y_ref = r*np.sin(angle)
 
-    psi_ref = angle + np.pi/2
-    vel_ref =r*dangle/dt
+    # psi_ref = angle + np.pi/2
+    # vel_ref =r*dangle/dt
 
-    ref_traj = np.stack([x_ref, y_ref, psi_ref, vel_ref])
+    # ref_traj = np.stack([x_ref, y_ref, psi_ref, vel_ref])
     
 
-    x_0 = np.array([r, 0,  vel_ref[0], 0, np.pi/2, 0, 0])
+    # x_0 = np.array([r, 0,  vel_ref[0], 0, np.pi/2, 0, 0])
     
 
     '''GO straight'''
@@ -271,25 +271,30 @@ if __name__ == '__main__':
     # x_0 = np.array([0,0,1,0,0,0,0])
 
     ''' slow down '''
-    # v_0 = 5
-    # v_ref = np.linspace(v_0,v_0-3,N)
-    # dt = 1.0/step
-    # x_ref = np.cumsum(v_ref)*dt
-    # x_ref = np.insert(x_ref[:-1], 0, 0)
-    # y_ref = np.zeros_like(x_ref)
-    # psi_ref = np.zeros_like(x_ref)
-    # ref_traj = np.stack([x_ref, y_ref, psi_ref, v_ref])
-    # x_0 = np.array([0,0,v_0,0,0,0,0])
+    v_0 = 5
+    v_ref = np.linspace(v_0,v_0-3,N)
+    dt = 1.0/step
+    x_ref = np.cumsum(v_ref)*dt
+    x_ref = np.insert(x_ref[:-1], 0, 0)
+    y_ref = np.zeros_like(x_ref)
+    psi_ref = np.zeros_like(x_ref)
+    ref_traj = np.stack([x_ref, y_ref, psi_ref, v_ref])
+    x_0 = np.array([0.5,0,v_0,0,0,0,0])
 
-    # x_init = np.cumsum(np.arange(N))*dt
-    # v_init = v_0*np.ones_like(x_init)
-    # state_init = np.stack([x_init, y_ref, v_init, y_ref, y_ref, y_ref, y_ref])
-    # u_init = np.zeros((2,N))
+    x_init = np.cumsum(np.arange(N))*dt
+    v_init = v_0*np.ones_like(x_init)
+    state_init = np.stack([x_init, y_ref, v_init, y_ref, y_ref, y_ref, y_ref])
+    u_init = np.zeros((2,N))
+    u_init[1,:] = -1
 
 
     ocp = TrajTrackingDyn(Tf, N)
+    import time
+    start = time.time()
+    
     x_sol, u_sol = ocp.solve(ref_traj, x_0)#, state_init, u_init)
-
+    end = time.time()
+    print(end - start)
     #print(x_sol[:,0] - ref_traj[0,:])
     # print(u_sol)
     #print(ref_traj.T)
