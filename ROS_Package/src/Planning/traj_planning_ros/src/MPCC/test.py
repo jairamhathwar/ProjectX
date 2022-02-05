@@ -21,9 +21,9 @@ if __name__ == '__main__':
     interp_path = Curve(x = waypoints[:,0], y = waypoints[:,1], k = 3)
     path_length = interp_path.getLength()/100.0
     
-    T = 1
-    n = 30
-    num_itr = 5
+    T = 2
+    n = 20
+    itr_max = 50
     planner = MPCC(T, n)
     
     x_cur = np.array([0, 0, 0, 0, 0, 0])    
@@ -32,7 +32,11 @@ if __name__ == '__main__':
     theta= x_init[:,-1]
 
     t0 = time()
-    for _ in range(num_itr):
+
+    itr = 0
+    error = 1e10
+    stop = 0.01
+    for _ in range(itr_max):
         ref = np.zeros((11,n))
         s = theta/path_length
         ref[:2,:] = interp_path.getValue(s).T/100.0
@@ -46,8 +50,13 @@ if __name__ == '__main__':
         for i in range(n):
             deri = interp_path.getDerivative(s[i])
             ref[3,i] = np.arctan2(deri[1], deri[0])
-        x_init, u_init = planner.solve_itr(ref, x_cur)#, x_init, u_init)
+        x_init, u_init, cost = planner.solve(ref, x_cur) #, x_init, u_init)
+        print(cost)
         theta = x_init[:,-1]
+        if (error-cost)<stop:
+            break
+        else:
+            error = cost
     # print(x_init)
     # print(u_init)
     print(time()-t0)

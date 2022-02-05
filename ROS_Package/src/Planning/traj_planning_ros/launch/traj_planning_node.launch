@@ -5,10 +5,9 @@
     <arg name="ControllerTopic"   default="/control/rc_control"    doc="ROS topic to publish"/>
     <arg name="Horizon"         default="1.0"              doc="Frequency to update the controller" />
     <arg name="Step"      default="10"              doc="Frequency to update the controller" />
-    <node pkg="traj_tracking_ros" type="traj_tracking_node.py" name="traj_tracking" output="$(arg output)">
+    <node pkg="traj_planning_ros" type="traj_planning_node.py" name="traj_planning" output="$(arg output)">
         <param name="TrajTopic"           value="$(arg SteeringChannel)" />
         <param name="PoseTopic"           value="$(arg ThrottleChannel)" />
-        <param name="ControllerTopic"           value="$(arg ControllerTopic)" />
         <param name="Horizon"           value="$(arg Horizon)" />
         <param name="Step"           value="$(arg Step)" />
     </node>

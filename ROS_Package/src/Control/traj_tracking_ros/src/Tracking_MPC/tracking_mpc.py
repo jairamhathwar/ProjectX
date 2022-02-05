@@ -9,11 +9,10 @@ from spatialmath.base import *
 from rc_control_msgs.msg import RCControl
 from traj_msgs.msg import Trajectory 
 from geometry_msgs.msg import PoseStamped
-import os
 
 
 class RefTraj:
-    def __init__(self, msg):
+    def __init__(self, msg: Trajectory):
         '''
         Decode the ros message and apply cubic interpolation 
         '''
@@ -41,7 +40,7 @@ class RefTraj:
         
         return t_interp, x_ref
 
-class MPC:
+class Tracking_MPC:
     def __init__(self, T = 1, N = 10, 
                     pose_topic = '/zed2/zed_node/pose',
                     ref_traj_topic = '/planning/trajectory',
@@ -69,13 +68,10 @@ class MPC:
         self.ocp_solver = TrajTrackingDyn(self.T, self.N, params_file = params_file)
 
         rospy.loginfo("Successfully initialized the solver")
-
-        # else:
-        #     self.ocp_solver = TrajTrackingKin(self.T, self.N, params_file = params_file)
         
         # set up subscriber to the reference trajectory and pose
-        self.traj_sub = rospy.Subscriber(ref_traj_topic, Trajectory, self.traj_sub_callback)
-        self.pose_sub = rospy.Subscriber(pose_topic, PoseStamped, self.pose_sub_callback)
+        self.traj_sub = rospy.Subscriber(ref_traj_topic, Trajectory, self.traj_sub_callback, queue_size=1)
+        self.pose_sub = rospy.Subscriber(pose_topic, PoseStamped, self.pose_sub_callback, queue_size=1)
 
         # set up publisher to the low-level ESC and servo controller
         self.control_pub = rospy.Publisher(controller_topic, RCControl, queue_size=1)

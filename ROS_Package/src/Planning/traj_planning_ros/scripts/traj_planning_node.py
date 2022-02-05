@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from std_msgs.msg import String
-from Tracking_MPC import Tracking_MPC
+from MPC import MPC
 import sys, os
 
 
@@ -11,7 +11,6 @@ def main():
     ## read parameters
     TrajTopic = rospy.get_param("~TrajTopic")
     PoseTopic = rospy.get_param("~PoseTopic")
-    ControllerTopic = rospy.get_param("~ControllerTopic")
     Horizon = rospy.get_param("~Horizon")
     Step = rospy.get_param("~Step")
     ParamsFile = rospy.get_param("~ParamsFile")

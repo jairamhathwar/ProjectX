@@ -98,7 +98,7 @@ class TrajTrackingBase(ABC):
             x_sol = np.array(x_sol)
             u_sol = np.array(u_sol)
         else:
-            x_sol = None
+            x_sol = self.acados_solver.get(0, 'x')
             u_sol = self.acados_solver.get(0, 'u')
         return x_sol, u_sol                                     
 
