@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(traj_planning_ros)
+project(traj_tracking_verify)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -107,7 +107,7 @@ catkin_package(
    CATKIN_DEPENDS rospy std_msgs rc_control_msgs 
 #  DEPENDS system_lib
 )
-catkin_install_python(PROGRAMS scripts/traj_planning_node.py 
+catkin_install_python(PROGRAMS scripts/traj_tracking_verify_node.py 
 			DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 ###########

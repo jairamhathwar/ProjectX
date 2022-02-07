@@ -16,7 +16,7 @@ def main():
     Step = rospy.get_param("~Step")
     ParamsFile = rospy.get_param("~ParamsFile")
 
-    tracker = MPC(T= Horizon, N = Step,
+    tracker = Tracking_MPC(T= Horizon, N = Step, replan_freq = 50,
                     pose_topic = PoseTopic,
                     ref_traj_topic = TrajTopic,
                     controller_topic = ControllerTopic,

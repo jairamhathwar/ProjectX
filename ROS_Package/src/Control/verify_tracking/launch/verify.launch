@@ -1,0 +1,14 @@
+<launch>
+    <arg name="output"            default="screen"    doc="display output to screen or log file"/>
+    <arg name="TrajTopic"   default="/planning/trajectory"    doc="ROS topic for the reference trajectory"/>
+    <arg name="PoseTopic"   default="/"    doc="ROS topic for the pose"/>
+    <arg name="Horizon"         default="2.0"              doc="Frequency to update the controller" />
+    <arg name="Step"      default="100"              doc="Frequency to update the controller" />
+    <node pkg="traj_tracking_verify" type="traj_tracking_verify_node.py" name="traj_tracking_verify_node" output="$(arg output)" args="" required="true">
+        <param name="TrajTopic"           value="$(arg TrajTopic)" />
+        <param name="PoseTopic"           value="$(arg PoseTopic)" />
+        <param name="Horizon"           value="$(arg Horizon)" />
+        <param name="Step"           value="$(arg Step)" />
+        <param name="ParamsFile"     value="$(find traj_tracking_ros)/params/modelparams.yaml" />
+    </node>
+</launch>
