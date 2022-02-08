@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 import rospy
 from std_msgs.msg import String
-from MPC import MPC
+from planning import Planning_MPC
 import sys, os
 
 
 def main():
-    rospy.init_node('traj_tracking_node')
-
+    rospy.init_node('traj_planning_node')
+    rospy.loginfo("Start trajectory planning node")
     ## read parameters
     TrajTopic = rospy.get_param("~TrajTopic")
     PoseTopic = rospy.get_param("~PoseTopic")
@@ -15,12 +15,12 @@ def main():
     Step = rospy.get_param("~Step")
     ParamsFile = rospy.get_param("~ParamsFile")
 
-    tracker = MPC(T= Horizon, N = Step,
+    planner = Planning_MPC(T= Horizon, N = Step,
                     pose_topic = PoseTopic,
                     ref_traj_topic = TrajTopic,
-                    controller_topic = ControllerTopic,
                     params_file = ParamsFile)
-    rospy.spin()
+    planner.run()
+
 if __name__ == '__main__':
     main()
     

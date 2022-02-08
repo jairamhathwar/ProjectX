@@ -6,6 +6,8 @@ from copy import deepcopy
 import numpy as np
 from IPython import display
 import matplotlib.pyplot as plt
+# https://petercorke.github.io/spatialmath-python/intro.html
+from spatialmath.base import *
 from Track import Track
 from MPCC import MPCC
 from iLQR import iLQR
@@ -43,18 +45,18 @@ class Planning_MPC():
         # create track
         if track_file is None:
             # make a circle with 1.5m radius
-            r = 1.5
+            r = 3
             theta = np.linspace(0, 2*np.pi, 100, endpoint=True)
             x = r*np.cos(theta)
             y = r*np.sin(theta)
-            track = Track(np.array([x,y]), 0.5, 0.5, True)
+            self.track = Track(np.array([x,y]), 0.5, 0.5, True)
         else:
-            track = Track()
-            track.load_from_file(track_file)
+            self.track = Track()
+            self.track.load_from_file(track_file)
             
         # set up the optimal control solver
-        if solver_type is "mpcc":
-            self.ocp_solver = MPCC(self.T, self.N, track, params_file = params_file)
+        if solver_type == "mpcc":
+            self.ocp_solver = MPCC(self.T, self.N, self.track, params_file = params_file)
         else:
             self.ocp_solver = iLQR(self.T, self.N, params_file = params_file)
         
@@ -90,17 +92,17 @@ class Planning_MPC():
         # Convert the current pose msg into a SE3 Matrix
         if self.vicon_pose:
             # vicon use TransformStamped
-            cur_pose = transl(msg.translation.x, msg.translation.y, msg.translation.z)
-            cur_pose[:3,:3] = q2r([msg.rotation.x, 
-                            msg.rotation.y, 
-                            msg.rotation.z, 
-                            msg.rotation.w])
+            cur_pose = transl(msg.transform.translation.x, msg.transform.translation.y, msg.transform.translation.z)
+            cur_pose[:3,:3] = q2r([msg.transform.rotation.w,
+                            msg.transform.rotation.x, 
+                            msg.transform.rotation.y, 
+                            msg.transform.rotation.z])
         else:
             cur_pose = transl(msg.position.x, msg.position.y, msg.position.z)
-            cur_pose[:3,:3] = q2r([msg.orientation.x, 
+            cur_pose[:3,:3] = q2r([msg.orientation.w,
+                            msg.orientation.x, 
                             msg.orientation.y, 
-                            msg.orientation.z, 
-                            msg.orientation.w])
+                            msg.orientation.z])
         
         self.thread_lock.acquire()
         
@@ -124,8 +126,8 @@ class Planning_MPC():
         self.thread_lock.release()
         
         self.traj_lock.acquire()
-        self.traj_x.append(msg.translation.x)
-        self.traj_y.append(msg.translation.y)
+        self.traj_x.append(msg.transform.translation.x)
+        self.traj_y.append(msg.transform.translation.y)
         self.traj_lock.release()
 
     def control_pub_thread(self):
@@ -138,10 +140,13 @@ class Planning_MPC():
             if since_last_pub >= self.replan_dt:
                 # make a copy of the data
                 cur_t = deepcopy(self.cur_t)
-                cur_state = np.array(self.cur_state, copy=True)                      
+                if self.cur_state is not None:
+                    cur_state = np.array(self.cur_state, copy=True)                      
+                else:
+                    cur_state = None
             self.thread_lock.release()
             
-            if since_last_pub >= self.replan_dt and cur_t is not None:
+            if since_last_pub >= self.replan_dt and cur_state is not None:
                 start_time = rospy.get_rostime()
                 
                 cur_state[-1] = self.track.project_point(cur_state[:2])
@@ -149,14 +154,15 @@ class Planning_MPC():
                 # if self.prev_plan is not None:
                 #     x_init = None
                 #     u_init = None
-                    
+                #rospy.loginfo("initial_condition")
+                print(cur_state)
                 sol_x, sol_u = self.ocp_solver.solve(cur_state)
                 end_time = rospy.get_rostime()
             
                 # contruct the new planning
                 plan = Trajectory()
                 plan.header.stamp = cur_t
-                plan.dt = self.dt
+                plan.dt = self.replan_dt
                 plan.step = self.N
                 plan.x = sol_x[0,:].tolist()
                 plan.y = sol_x[1,:].tolist()
@@ -178,18 +184,21 @@ class Planning_MPC():
                 rospy.loginfo("Use "+str((end_time-start_time).to_sec())+" to plan")
                 
     def run(self):
-        self.track.plot_track()
+        plt.ion()
+        plt.show()
+        plt.figure(figsize=(5, 5))        
         while not rospy.is_shutdown():
-        
             display.clear_output(wait = True)
-            display.display(self.track.figure)
-            self.track.figure.clf()
+            display.display(plt.gcf())
+            plt.clf()
             self.track.plot_track()
             self.traj_lock.acquire()
-            self.track.figure.plot(self.traj_x, self.traj_y, '--r')
-            self.track.figure.plot(self.prev_plan[0,:], self.prev_plan[1,:], '-.b')
+            plt.plot(self.traj_x, self.traj_y, '--r')
+            if self.prev_plan is not None:
+                plt.plot(self.prev_plan[0,:], self.prev_plan[1,:], '-.b')
             self.traj_lock.release()            
-            self.track.figure.xlim((-5, 5))
-            self.track.figure.ylim((-5, 5))
-            self.track.figure.pause(0.001)
+            plt.xlim((-5, 5))
+            plt.ylim((-5, 5))
+            plt.pause(0.01)
+            
             

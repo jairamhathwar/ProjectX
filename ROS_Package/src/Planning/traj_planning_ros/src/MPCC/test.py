@@ -50,7 +50,7 @@ if __name__ == '__main__':
         for i in range(n):
             deri = interp_path.getDerivative(s[i])
             ref[3,i] = np.arctan2(deri[1], deri[0])
-        x_init, u_init, cost = planner.solve(ref, x_cur) #, x_init, u_init)
+        x_init, u_init, cost = planner.solve_itr(ref, x_cur) #, x_init, u_init)
         print(cost)
         theta = x_init[:,-1]
         if (error-cost)<stop:

@@ -114,7 +114,7 @@ class MPCC():
             vel*casadi.cos(psi), # X_dot
             vel*casadi.sin(psi), # Y_dot
             vel/(l_r+l_f)*casadi.tan(delta), # psi_dot
-            F_x/m, # accel
+            F_x, # accel
             theta_dot
         )
 
@@ -124,6 +124,39 @@ class MPCC():
         self.acados_model.f_expl_expr = f_expl
         self.acados_model.f_impl_expr = x_dot - f_expl
 
+        '''
+        Define Cost function of OCP 
+        '''
+
+        # load cost function weight
+        Q_c = self.params['Q_c'] # contouring error cost
+        Q_l = self.params['Q_l'] # lag error cost
+        Q_theta = self.params['Q_theta'] # progress cost
+        
+        R_d = self.params['R_d'] #regulization on duty cycle rate
+        R_delta = self.params['R_d'] # regulization on the steering rate
+
+        # projection point on the contour
+        x_d_ref = SX.sym('x_d_ref')
+        y_d_ref = SX.sym('y_d_ref')
+        theta_ref = SX.sym('theta_ref')
+        phi_ref = SX.sym('phi_ref')
+        
+        # linearize around the reference point on the countour 
+        # and approximate x_d, y_d on the contour
+        x_d = x_d_ref + casadi.cos(phi_ref)*(theta - theta_ref)
+        y_d = y_d_ref + casadi.sin(phi_ref)*(theta - theta_ref)
+
+        # calculate the contour and lag error
+        e_c = casadi.sin(phi_ref)*(pos_X - x_d) - casadi.cos(phi_ref)*(pos_Y - y_d)
+        e_l = -casadi.cos(phi_ref)*(pos_X - x_d) - casadi.sin(phi_ref)*(pos_Y - y_d)
+
+        self.acados_model.cost_expr_ext_cost = e_c*Q_c*e_c + e_l*Q_l*e_l \
+                                    -Q_theta*theta_dot*self.dt + d*R_d*d \
+                                    + delta*R_delta*delta
+
+        self.ocp.cost.cost_type = "EXTERNAL"
+        
         ''' 
         Define Constraints for the optimal control problem
         '''
@@ -195,38 +228,7 @@ class MPCC():
         self.ocp.constraints.lh = np.array([a_min, 0,0])
         self.ocp.constraints.uh = np.array([a_max, 1e15, 1e15])
 
-        '''
-        Define Cost function of OCP 
-        '''
-
-        # load cost function weight
-        Q_c = self.params['Q_c'] # contouring error cost
-        Q_l = self.params['Q_l'] # lag error cost
-        Q_theta = self.params['Q_theta'] # progress cost
         
-        R_d = self.params['R_d'] #regulization on duty cycle rate
-        R_delta = self.params['R_d'] # regulization on the steering rate
-
-        # projection point on the contour
-        x_d_ref = SX.sym('x_d_ref')
-        y_d_ref = SX.sym('y_d_ref')
-        theta_ref = SX.sym('theta_ref')
-        phi_ref = SX.sym('phi_ref')
-        
-        # linearize around the reference point on the countour 
-        # and approximate x_d, y_d on the contour
-        x_d = x_d_ref + casadi.cos(phi_ref)*(theta - theta_ref)
-        y_d = y_d_ref + casadi.sin(phi_ref)*(theta - theta_ref)
-
-        # calculate the contour and lag error
-        e_c = casadi.sin(phi_ref)*(pos_X - x_d) - casadi.cos(phi_ref)*(pos_Y - y_d)
-        e_l = -casadi.cos(phi_ref)*(pos_X - x_d) - casadi.sin(phi_ref)*(pos_Y - y_d)
-
-        self.acados_model.cost_expr_ext_cost = e_c*Q_c*e_c + e_l*Q_l*e_l \
-                                    -Q_theta*theta_dot*self.dt + d*R_d*d \
-                                    + delta*R_delta*delta
-
-        self.ocp.cost.cost_type = "EXTERNAL"
 
         '''
         use "p" variable in the acados to handle time-varing variables,
@@ -260,10 +262,10 @@ class MPCC():
         # set QP solver and integration
         self.ocp.dims.N = self.N
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver =  'PARTIAL_CONDENSING_HPIPM'#   'FULL_CONDENSING_QPOASES'#
+        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'#  'FULL_CONDENSING_QPOASES'#  
         self.ocp.solver_options.nlp_solver_type = "SQP_RTI" #"SQP_RTI"# 
         self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
-        #self.ocp.solver_options.levenberg_marquardt = 1e-3
+        self.ocp.solver_options.levenberg_marquardt = 1e-4
         self.ocp.solver_options.integrator_type = "ERK"
 
         # initial value for p
@@ -289,6 +291,8 @@ class MPCC():
 
             if u_init is not None:
                 self.acados_solver.set(stageidx, "u", u_init[:, stageidx])
+            else:
+                self.acados_solver.set(stageidx, "u", np.array([0,0,0]))
 
         # set initial state
         self.acados_solver.set(0, "lbx", x_cur)
@@ -321,7 +325,7 @@ class MPCC():
         
         error = 1e10
 
-        for _ in range(self.max_itr):
+        for itr in range(self.max_itr):
             ref = np.zeros((11,self.N))
             interp_pt, slope = self.track.interp(theta) 
             ref[:2,:] = interp_pt
@@ -336,11 +340,12 @@ class MPCC():
 
             x_init, u_init, cost = self.solve_itr(ref, x_cur, x_init, u_init)
             theta = x_init[-1,:]
+            #print(itr, cost)
             if (error-cost)<self.stop_tol:
                 break
             else:
                 error = cost
-
+        print(cost)
         return x_init, u_init
 
 
