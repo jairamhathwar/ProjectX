@@ -1,1 +1,1 @@
-from .iLQR import iLQR
+from .ilqr import iLQR
