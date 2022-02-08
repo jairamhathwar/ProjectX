@@ -8,6 +8,7 @@ import yaml
 class MPCC():
     def __init__(self, Tf, N, track, 
                 max_itr = 50,
+                stop_tol = 1e-2,
                 params_file = 'modelparams.yaml'):
         """
         Base Class of the trajectory planning controller using ACADOS
@@ -26,6 +27,7 @@ class MPCC():
         self.dt = Tf/N
         
         self.max_itr = max_itr
+        self.stop_tol = stop_tol
 
         self.track = track
 
@@ -281,12 +283,12 @@ class MPCC():
             
             # warm start
             if x_init is not None:
-                self.acados_solver.set(stageidx, "x", x_init[stageidx,:])
+                self.acados_solver.set(stageidx, "x", x_init[:, stageidx])
             else:
                 self.acados_solver.set(stageidx, "x", x_cur)
 
             if u_init is not None:
-                self.acados_solver.set(stageidx, "u", u_init[stageidx,:])
+                self.acados_solver.set(stageidx, "u", u_init[:, stageidx])
 
         # set initial state
         self.acados_solver.set(0, "lbx", x_cur)
@@ -301,23 +303,24 @@ class MPCC():
             x_sol.append(self.acados_solver.get(stageidx, 'x'))
             u_sol.append(self.acados_solver.get(stageidx, 'u'))
 
-        x_sol = np.array(x_sol)
-        u_sol = np.array(u_sol)
+        x_sol = np.array(x_sol).T
+        u_sol = np.array(u_sol).T
 
         cost = self.acados_solver.get_cost()
         return x_sol, u_sol, cost              
 
     def solve(self, x_cur, x_init = None, u_init = None):
+        '''
+        All dimensions are d x N
+        '''
         
         if x_init is None:
-            x_init = np.repeat(x_cur[np.newaxis,:], self.N, axis=0)
+            theta = np.ones(self.N)*x_cur[-1]
         else:
-            x_init[0,:] = x_cur
-
-        theta= x_init[:,-1]
+            theta= x_init[:,-1]
         
         error = 1e10
-        stop = 0.01
+
         for _ in range(self.max_itr):
             ref = np.zeros((11,self.N))
             interp_pt, slope = self.track.interp(theta) 
@@ -332,8 +335,8 @@ class MPCC():
             ref[10,:] = 1
 
             x_init, u_init, cost = self.solve_itr(ref, x_cur, x_init, u_init)
-            theta = x_init[:,-1]
-            if (error-cost)<stop:
+            theta = x_init[-1,:]
+            if (error-cost)<self.stop_tol:
                 break
             else:
                 error = cost

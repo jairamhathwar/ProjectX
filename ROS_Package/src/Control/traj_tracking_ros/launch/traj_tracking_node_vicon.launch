@@ -1,0 +1,16 @@
+<launch>
+    <arg name="output"            default="screen"    doc="display output to screen or log file"/>
+    <arg name="TrajTopic"   default="/planning/trajectory"    doc="ROS topic for the reference trajectory"/>
+    <arg name="PoseTopic"   default="/vicon/rc_car_cg/rc_car_cg"    doc="ROS topic for the pose"/>
+    <arg name="ControllerTopic"   default="/control/rc_control"    doc="ROS topic to publish"/>
+    <arg name="Horizon"         default="1.0"              doc="Frequency to update the controller" />
+    <arg name="Step"      default="10"              doc="Frequency to update the controller" />
+    <node pkg="traj_tracking_ros" type="traj_tracking_node.py" name="traj_tracking_node" output="$(arg output)" args="" required="true">
+        <param name="TrajTopic"           value="$(arg TrajTopic)" />
+        <param name="PoseTopic"           value="$(arg PoseTopic)" />
+        <param name="ControllerTopic"           value="$(arg ControllerTopic)" />
+        <param name="Horizon"           value="$(arg Horizon)" />
+        <param name="Step"           value="$(arg Step)" />
+        <param name="ParamsFile"     value="$(find traj_tracking_ros)/params/modelparams.yaml" />
+    </node>
+</launch>

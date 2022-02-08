@@ -49,6 +49,14 @@ class Track:
             deri = self.center_line.getDerivative(s[i])
             slope[i] = np.arctan2(deri[1], deri[0])
         return interp_pt, slope
+    
+    def project_points(self, points):
+        n = points
+        theta = np.zeros(n)
+        
+    def project_point(self, point):
+        return self.center_line.projectPoint(point)*self.length
+        
 
     def plot_track(self):
         if self.figure is None:
@@ -68,6 +76,9 @@ class Track:
 
         self.figure.plot(self.track_bound[0,:], self.track_bound[1,:], 'k-')
         self.figure.plot(self.track_bound[2,:], self.track_bound[3,:], 'k-')
+        
+    def load_from_file(self):
+        pass
     
 
 
