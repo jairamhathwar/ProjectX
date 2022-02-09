@@ -147,16 +147,24 @@ class Planning_MPC():
             self.thread_lock.release()
             
             if since_last_pub >= self.replan_dt and cur_state is not None:
-                start_time = rospy.get_rostime()
                 
+                # TODO: use previous plan as initial guess
                 cur_state[-1] = self.track.project_point(cur_state[:2])
                 
-                # if self.prev_plan is not None:
-                #     x_init = None
-                #     u_init = None
-                #rospy.loginfo("initial_condition")
-                print(cur_state)
-                sol_x, sol_u = self.ocp_solver.solve(cur_state)
+                if self.prev_plan is None:
+                    x_init = None
+                    u_init = None
+                else:
+                    x_init = np.zeros((5,self.N))
+                    x_init[:,1:-1] = self.prev_plan[:,2:]
+                    x_init[:,0] = cur_state
+                    x_init[:,-1] = self.prev_plan[:,-1]
+                    
+                    u_init = np.zeros((3,self.N))
+                    u_init[:,:-1] = self.prev_control[:,1:]
+                    
+                start_time = rospy.get_rostime()
+                sol_x, sol_u = self.ocp_solver.solve(cur_state, x_init, u_init)
                 end_time = rospy.get_rostime()
             
                 # contruct the new planning
@@ -199,6 +207,5 @@ class Planning_MPC():
             self.traj_lock.release()            
             plt.xlim((-5, 5))
             plt.ylim((-5, 5))
-            plt.pause(0.01)
-            
+            plt.pause(0.001)
             

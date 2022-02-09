@@ -53,7 +53,7 @@ class Track:
         theta = np.zeros(n)
         
     def project_point(self, point):
-        s, _ = self.center_line.projectPoint(point)
+        s, _ = self.center_line.projectPoint(point,eps=1e-3)
         return s*self.length
         
 

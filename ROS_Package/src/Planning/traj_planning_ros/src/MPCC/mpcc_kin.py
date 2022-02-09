@@ -7,7 +7,7 @@ import yaml
 
 class MPCC():
     def __init__(self, Tf, N, track, 
-                max_itr = 50,
+                max_itr = 10,
                 stop_tol = 1e-2,
                 params_file = 'modelparams.yaml'):
         """
@@ -108,13 +108,13 @@ class MPCC():
         
         # control input
         u = casadi.vertcat(d, delta, theta_dot)
-        F_x = casadi.if_else(d>=0,(C_m1-C_m2*vel),C_m2*vel)*d-C_roll-C_d*vel*vel
+        #F_x = casadi.if_else(d>=0,(C_m1-C_m2*vel),C_m2*vel)*d-C_roll-C_d*vel*vel
         # system dynamics
         f_expl = casadi.vertcat(
             vel*casadi.cos(psi), # X_dot
             vel*casadi.sin(psi), # Y_dot
             vel/(l_r+l_f)*casadi.tan(delta), # psi_dot
-            F_x, # accel
+            d, # accel
             theta_dot
         )
 
@@ -262,19 +262,20 @@ class MPCC():
         # set QP solver and integration
         self.ocp.dims.N = self.N
         self.ocp.solver_options.tf = self.Tf
-        self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'#  'FULL_CONDENSING_QPOASES'#  
-        self.ocp.solver_options.nlp_solver_type = "SQP_RTI" #"SQP_RTI"# 
+        self.ocp.solver_options.qp_solver =   'FULL_CONDENSING_QPOASES'#'PARTIAL_CONDENSING_HPIPM'# 
+        self.ocp.solver_options.nlp_solver_type = "SQP" #"SQP_RTI"# 
         self.ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
-        self.ocp.solver_options.levenberg_marquardt = 1e-4
+        self.ocp.solver_options.levenberg_marquardt = 1e-2
         self.ocp.solver_options.integrator_type = "ERK"
 
         # initial value for p
         self.ocp.parameter_values = np.zeros(self.acados_model.p.size()[0])
 
-        self.ocp.solver_options.nlp_solver_max_iter = 10
-        self.ocp.solver_options.qp_solver_iter_max = 50
-        #self.ocp.solver_options.nlp_solver_step_length = 0.5
-        self.ocp.solver_options.tol = 1e-3
+        self.ocp.solver_options.nlp_solver_max_iter = 5
+        self.ocp.solver_options.qp_solver_iter_max = 100
+        self.ocp.solver_options.nlp_solver_step_length = 0.5
+        self.ocp.solver_options.print_level = 0
+        #self.ocp.solver_options.tol = 1e-3
 
         self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_tracking_acados.json")
 
@@ -300,6 +301,7 @@ class MPCC():
 
         # solve the system
         self.acados_solver.solve()
+        #self.acados_solver.print_statistics()
 
         x_sol = []
         u_sol = []
@@ -321,7 +323,7 @@ class MPCC():
         if x_init is None:
             theta = np.ones(self.N)*x_cur[-1]
         else:
-            theta= x_init[:,-1]
+            theta= x_init[-1,:]
         
         error = 1e10
 
@@ -331,8 +333,8 @@ class MPCC():
             ref[:2,:] = interp_pt
             ref[3,:] = slope
             ref[2, :] = theta
-            ref[4,:] = 0.5
-            ref[5,:] = 0.5
+            ref[4,:] = self.track.width_left
+            ref[5,:] = self.track.width_right
             ref[6:8,:] = 0
             ref[8,:] = 1
             ref[9,:] = 0
@@ -340,12 +342,12 @@ class MPCC():
 
             x_init, u_init, cost = self.solve_itr(ref, x_cur, x_init, u_init)
             theta = x_init[-1,:]
-            #print(itr, cost)
-            if (error-cost)<self.stop_tol:
+            #print(itr, cost, abs(error-cost))
+            if abs(error-cost)<self.stop_tol:
                 break
             else:
                 error = cost
-        print(cost)
+        #print(cost)
         return x_init, u_init
 
 

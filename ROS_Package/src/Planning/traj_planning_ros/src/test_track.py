@@ -12,20 +12,23 @@ track = Track(np.array([x,y]), 0.5, 0.5, True)
 #print(track.length)
 params_file = '/home/nvidia/Documents/PrincetonRaceCar/ROS_Package/src/Planning/traj_planning_ros/params/modelparams.yaml'
 
-ocp_solver = MPCC(2, 20, track, params_file = params_file)
+ocp_solver = MPCC(2, 10, track, params_file = params_file)
 
-
-x_cur = np.array([2.53437472, 1.5608051,  2.51235582, 0.00422506, 1.65570005])
+x_cur = np.array([2.66698621, 1.52317952, 3.06517665, 0.00322242, 1.55649054])
 
 t0 = time.time()
 sol_x, sol_u = ocp_solver.solve(x_cur)
 print(time.time()-t0)
 
 #print(sol_x)
-#print(sol_u)
+print(sol_u)
 
 
 track.plot_track()
 plt.plot(sol_x[0,:], sol_x[1,:])
+
+plt.figure()
+plt.plot(sol_x[3,:],'-')
+plt.plot(sol_u[0,:], '--')
 
 plt.show()

@@ -3,7 +3,7 @@
     <arg name="TrajTopic"   default="/planning/trajectory"    doc="ROS topic for the reference trajectory"/>
     <arg name="PoseTopic"   default="/vicon/rc_car_rear/rc_car_rear"    doc="ROS topic for the pose"/>
     <arg name="Horizon"         default="2.0"              doc="Frequency to update the controller" />
-    <arg name="Step"      default="20"              doc="Frequency to update the controller" />
+    <arg name="Step"      default="10"              doc="Frequency to update the controller" />
     <node pkg="traj_planning_ros" type="traj_planning_node.py" name="traj_planning" output="$(arg output)">
         <param name="TrajTopic"           value="$(arg TrajTopic)" />
         <param name="PoseTopic"           value="$(arg PoseTopic)" />
