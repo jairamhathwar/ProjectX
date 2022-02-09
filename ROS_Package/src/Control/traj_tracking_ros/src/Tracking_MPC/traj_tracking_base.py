@@ -80,6 +80,8 @@ class TrajTrackingBase(ABC):
 
             if u_init is not None:
                 self.acados_solver.set(stageidx, "u", u_init[:, stageidx])
+            else:
+                self.acados_solver.set(stageidx, "u", np.array([0,0]))
 
         # set initial state
         self.acados_solver.set(0, "lbx", x_cur)

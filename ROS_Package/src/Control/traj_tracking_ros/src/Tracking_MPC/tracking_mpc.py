@@ -46,6 +46,7 @@ class RefTraj:
 
 class Tracking_MPC:
     def __init__(self, T = 1, N = 10, replan_freq = 10,
+                    vicon_pose = True, 
                     pose_topic = '/zed2/zed_node/pose',
                     ref_traj_topic = '/planning/trajectory',
                     controller_topic = '/control/rc_control',
@@ -63,6 +64,7 @@ class Tracking_MPC:
         self.T =T
         self.N = N
         self.dt = T/N
+        self.vicon_pose = vicon_pose
         
         # set up the optimal control solver
         self.ocp_solver = TrajTrackingDyn(self.T, self.N, params_file = params_file)
@@ -103,17 +105,19 @@ class Tracking_MPC:
         Subscriber callback function of the robot pose
         """
         # Convert the current pose msg into a SE3 Matrix
-        cur_pose = transl(msg.translation.x, msg.translation.y, msg.translation.z)
-        cur_pose[:3,:3] = q2r([msg.rotation.x, 
-                        msg.rotation.y, 
-                        msg.rotation.z, 
-                        msg.rotation.w])
-        
-        # cur_pose = transl(msg.position.x, msg.position.y, msg.position.z)
-        # cur_pose[:3,:3] = q2r([msg.orientation.x, 
-        #                 msg.orientation.y, 
-        #                 msg.orientation.z, 
-        #                 msg.orientation.w])
+        if self.vicon_pose:
+            # vicon use TransformStamped
+            cur_pose = transl(msg.transform.translation.x, msg.transform.translation.y, msg.transform.translation.z)
+            cur_pose[:3,:3] = q2r([msg.transform.rotation.w,
+                            msg.transform.rotation.x, 
+                            msg.transform.rotation.y, 
+                            msg.transform.rotation.z])
+        else:
+            cur_pose = transl(msg.position.x, msg.position.y, msg.position.z)
+            cur_pose[:3,:3] = q2r([msg.orientation.w,
+                            msg.orientation.x, 
+                            msg.orientation.y, 
+                            msg.orientation.z])
         
         self.thread_lock.acquire()
         
@@ -146,11 +150,14 @@ class Tracking_MPC:
                 # make a copy of the data
                 cur_t = deepcopy(self.cur_t)
                 cur_pose = np.array(self.cur_pose, copy=True)
-                cur_pose_delta = np.array(self.cur_pose_delta, copy=True)      
+                if self.cur_pose_delta is None:
+                    cur_pose_delta = None
+                else:
+                    cur_pose_delta = np.array(self.cur_pose_delta, copy=True)      
                       
             self.thread_lock.release()
             
-            if since_last_pub >= self.replan_dt and cur_t is not None:
+            if since_last_pub >= self.replan_dt and cur_pose_delta is not None:
                 start_time = rospy.get_rostime()
                  # get current state State: [X, Y, Vx, Vy, psi: heading, omega: yaw rate, delta: steering angle]
                 cur_state = np.array([cur_pose[0,-1], cur_pose[1,-1], 
@@ -177,7 +184,7 @@ class Tracking_MPC:
                 self.control_pub.publish(control)
                 self.prev_control = [control.throttle, control.steer]
                 self.last_pub_t = cur_t
-                rospy.loginfo("Use "+str((end_time-start_time).to_sec())+" to solve")
+                rospy.loginfo("Use "+str((end_time-start_time).to_sec())+" to solve control")
             
         
 
