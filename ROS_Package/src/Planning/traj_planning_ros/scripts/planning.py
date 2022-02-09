@@ -184,28 +184,28 @@ class Planning_MPC():
 
                 self.last_pub_t = cur_t
                 
-                self.traj_lock.acquire()
+                # self.traj_lock.acquire()
                 self.prev_plan = sol_x
                 self.prev_control = sol_u
-                self.traj_lock.release()
+                # self.traj_lock.release()
 
                 rospy.loginfo("Use "+str((end_time-start_time).to_sec())+" to plan")
                 
     def run(self):
-        plt.ion()
-        plt.show()
-        plt.figure(figsize=(5, 5))        
-        while not rospy.is_shutdown():
-            display.clear_output(wait = True)
-            display.display(plt.gcf())
-            plt.clf()
-            self.track.plot_track()
-            self.traj_lock.acquire()
-            plt.plot(self.traj_x, self.traj_y, '--r')
-            if self.prev_plan is not None:
-                plt.plot(self.prev_plan[0,:], self.prev_plan[1,:], '-.b')
-            self.traj_lock.release()            
-            plt.xlim((-5, 5))
-            plt.ylim((-5, 5))
-            plt.pause(0.001)
-            
+        # plt.ion()
+        # plt.show()
+        # plt.figure(figsize=(5, 5))        
+        # while not rospy.is_shutdown():
+        #     display.clear_output(wait = True)
+        #     display.display(plt.gcf())
+        #     plt.clf()
+        #     self.track.plot_track()
+        #     self.traj_lock.acquire()
+        #     plt.plot(self.traj_x, self.traj_y, '--r')
+        #     if self.prev_plan is not None:
+        #         plt.plot(self.prev_plan[0,:], self.prev_plan[1,:], '-.b')
+        #     self.traj_lock.release()            
+        #     plt.xlim((-5, 5))
+        #     plt.ylim((-5, 5))
+        #     plt.pause(0.001)
+        rospy.spin()

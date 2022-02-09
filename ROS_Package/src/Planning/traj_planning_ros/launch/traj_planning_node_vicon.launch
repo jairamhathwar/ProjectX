@@ -13,6 +13,6 @@
 
     </node>
     <include file="$(find vicon_bridge)/launch/vicon.launch" />
-    <!-- <include file="$(find traj_tracking_ros)/launch/traj_tracking_node.launch"/> -->
-    <!-- <include file="$(find rc_control)/launch/rc_control_node.launch"/> -->
+    <include file="$(find traj_tracking_ros)/launch/traj_tracking_node_vicon.launch"/>
+    <include file="$(find rc_control)/launch/rc_control_node.launch"/>
 </launch>

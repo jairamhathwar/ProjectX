@@ -172,13 +172,13 @@ class Tracking_MPC:
                 _, x_ref = ref_traj.interp_traj(self, cur_t, self.dt, self.N)
                 
                 # solve the ocp
-                sol_x, sol_u = self.ocp_solver.solve(x_ref, cur_state)
+                sol_x, sol_u = self.ocp_solver.solve(x_ref, cur_state, full_sol = False)
                 end_time = rospy.get_rostime()
                 # form the new control output by taking the first
                 control = RCControl()
                 control.header.stamp = cur_t
-                control.throttle = sol_u[0,0]
-                control.steer = sol_x[0,-1]+sol_u[0,1]*since_last_pub  
+                control.throttle = sol_u[0]
+                control.steer = sol_x[-1]+sol_u[1]*since_last_pub  
                 control.reverse = False
                 
                 self.control_pub.publish(control)
