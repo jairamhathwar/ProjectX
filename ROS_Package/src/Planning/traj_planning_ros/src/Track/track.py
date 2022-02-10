@@ -49,8 +49,11 @@ class Track:
         return interp_pt.T, slope
     
     def project_points(self, points):
-        n = points
-        theta = np.zeros(n)
+        '''
+        Points have [2xn] shape
+        '''
+        
+        s, error = self.center_line.projectPoint(points, eps=1e-3)
         
     def project_point(self, point):
         s, _ = self.center_line.projectPoint(point,eps=1e-3)
