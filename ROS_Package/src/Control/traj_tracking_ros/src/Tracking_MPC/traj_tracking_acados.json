@@ -1,6 +1,6 @@
 {
-    "acados_include_path": "/home/zixu/Data/Git_Repo/acados/include",
-    "acados_lib_path": "/home/zixu/Data/Git_Repo/acados/lib",
+    "acados_include_path": "/home/nvidia/Documents/acados/include",
+    "acados_lib_path": "/home/nvidia/Documents/acados/lib",
     "code_export_directory": "c_generated_code",
     "constraints": {
         "C": [],
@@ -13,8 +13,7 @@
             1
         ],
         "idxbx": [
-            2,
-            6
+            2
         ],
         "idxbx_0": [
             0,
@@ -22,8 +21,7 @@
             2,
             3,
             4,
-            5,
-            6
+            5
         ],
         "idxbx_e": [],
         "idxbxe_0": [
@@ -32,8 +30,7 @@
             2,
             3,
             4,
-            5,
-            6
+            5
         ],
         "idxsbu": [],
         "idxsbx": [],
@@ -46,14 +43,12 @@
         "idxsphi_e": [],
         "lbu": [
             -1.0,
-            -5.5
-        ],
-        "lbx": [
-            -0.01,
             -0.35
         ],
+        "lbx": [
+            -0.01
+        ],
         "lbx_0": [
-            0.0,
             0.0,
             0.0,
             0.0,
@@ -79,14 +74,12 @@
         "lsphi_e": [],
         "ubu": [
             1.0,
-            5.5
-        ],
-        "ubx": [
-            5.0,
             0.35
         ],
+        "ubx": [
+            2
+        ],
         "ubx_0": [
-            0.0,
             0.0,
             0.0,
             0.0,
@@ -141,12 +134,12 @@
         "zu_e": []
     },
     "dims": {
-        "N": 20,
+        "N": 5,
         "nbu": 2,
-        "nbx": 2,
-        "nbx_0": 7,
+        "nbx": 1,
+        "nbx_0": 6,
         "nbx_e": 0,
-        "nbxe_0": 7,
+        "nbxe_0": 6,
         "ng": 0,
         "ng_e": 0,
         "nh": 0,
@@ -168,7 +161,7 @@
         "nsphi": 0,
         "nsphi_e": 0,
         "nu": 2,
-        "nx": 7,
+        "nx": 6,
         "ny": 0,
         "ny_0": 0,
         "ny_e": 0,
@@ -233,7 +226,7 @@
         "samplingtime": "t0"
     },
     "solver_options": {
-        "Tsim": 0.05,
+        "Tsim": 0.1,
         "alpha_min": 0.05,
         "alpha_reduction": 0.7,
         "collocation_type": "GAUSS_LEGENDRE",
@@ -248,13 +241,13 @@
         "levenberg_marquardt": 0.0,
         "model_external_shared_lib_dir": null,
         "model_external_shared_lib_name": null,
-        "nlp_solver_max_iter": 100,
+        "nlp_solver_max_iter": 5,
         "nlp_solver_step_length": 1.0,
-        "nlp_solver_tol_comp": 0.001,
-        "nlp_solver_tol_eq": 0.001,
-        "nlp_solver_tol_ineq": 0.001,
-        "nlp_solver_tol_stat": 0.001,
-        "nlp_solver_type": "SQP_RTI",
+        "nlp_solver_tol_comp": 1e-06,
+        "nlp_solver_tol_eq": 1e-06,
+        "nlp_solver_tol_ineq": 1e-06,
+        "nlp_solver_tol_stat": 1e-06,
+        "nlp_solver_type": "SQP",
         "print_level": 0,
         "qp_solver": "PARTIAL_CONDENSING_HPIPM",
         "qp_solver_cond_N": null,
@@ -270,40 +263,10 @@
             0,
             0,
             0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
             0
         ],
         "sim_method_newton_iter": 3,
         "sim_method_num_stages": [
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
             4,
             4,
             4,
@@ -315,45 +278,15 @@
             1,
             1,
             1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
             1
         ],
-        "tf": 1,
+        "tf": 0.5,
         "time_steps": [
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05
+            0.1,
+            0.1,
+            0.1,
+            0.1,
+            0.1
         ]
     }
 }

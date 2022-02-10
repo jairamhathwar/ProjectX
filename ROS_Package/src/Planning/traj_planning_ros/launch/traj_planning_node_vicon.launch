@@ -1,4 +1,8 @@
 <launch>
+    <include file="$(find vicon_bridge)/launch/vicon.launch" />
+    <include file="$(find rc_control)/launch/rc_control_node.launch"/>
+    <include file="$(find traj_tracking_ros)/launch/traj_tracking_node_vicon.launch"/>
+
     <arg name="output"            default="screen"    doc="display output to screen or log file"/>
     <arg name="TrajTopic"   default="/planning/trajectory"    doc="ROS topic for the reference trajectory"/>
     <arg name="PoseTopic"   default="/vicon/rc_car_rear/rc_car_rear"    doc="ROS topic for the pose"/>
@@ -7,12 +11,10 @@
     <node pkg="traj_planning_ros" type="traj_planning_node.py" name="traj_planning" output="$(arg output)">
         <param name="TrajTopic"           value="$(arg TrajTopic)" />
         <param name="PoseTopic"           value="$(arg PoseTopic)" />
-        <param name="Horizon"           value="$(arg Horizon)" />
-        <param name="Step"           value="$(arg Step)" />
-        <param name="ParamsFile"     value="$(find traj_planning_ros)/params/modelparams.yaml" />
+        <param name="PlanHorizon"           value="$(arg Horizon)" />
+        <param name="PlanStep"           value="$(arg Step)" />
+        <param name="PlanParamsFile"     value="$(find traj_planning_ros)/params/modelparams.yaml" />
+        <param name="PlanBasePath"     value="$(find traj_planning_ros)" />
 
     </node>
-    <include file="$(find vicon_bridge)/launch/vicon.launch" />
-    <include file="$(find traj_tracking_ros)/launch/traj_tracking_node_vicon.launch"/>
-    <include file="$(find rc_control)/launch/rc_control_node.launch"/>
 </launch>

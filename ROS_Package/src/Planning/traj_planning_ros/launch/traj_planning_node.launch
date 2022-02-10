@@ -8,8 +8,8 @@
     <node pkg="traj_planning_ros" type="traj_planning_node.py" name="traj_planning" output="$(arg output)">
         <param name="TrajTopic"           value="$(arg SteeringChannel)" />
         <param name="PoseTopic"           value="$(arg ThrottleChannel)" />
-        <param name="Horizon"           value="$(arg Horizon)" />
-        <param name="Step"           value="$(arg Step)" />
+        <param name="PlanHorizon"           value="$(arg Horizon)" />
+        <param name="PlanStep"           value="$(arg Step)" />
     </node>
     <!-- <include file="$(find traj_tracking_ros)/launch/traj_tracking_node.launch"/> -->
     <!-- <include file="$(find rc_control)/launch/rc_control_node.launch"/> -->

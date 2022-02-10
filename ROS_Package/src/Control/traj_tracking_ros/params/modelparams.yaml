@@ -19,7 +19,7 @@ C_d: 0.6420
 
 # box constraints
 # velocity
-v_max: 5 # max long vel [m/s]
+v_max: 2 # max long vel [m/s]
 v_min: -0.01 #0.05 # min long vel [m/s]
 
 # steering
@@ -35,5 +35,5 @@ d_max: 1.0
 # Weight
 Q_pos: 100.0
 Q_psi: 0
-Q_vel: 20
-Q_u: 1
+Q_vel: 1
+Q_u: 0.5

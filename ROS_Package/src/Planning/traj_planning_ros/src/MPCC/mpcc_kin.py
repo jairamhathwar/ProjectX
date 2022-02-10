@@ -4,12 +4,14 @@ from matplotlib import pyplot as plt
 import casadi
 from casadi import SX
 import yaml
+import os
 
 class MPCC():
     def __init__(self, Tf, N, track, 
                 max_itr = 10,
                 stop_tol = 1e-2,
-                params_file = 'modelparams.yaml'):
+                params_file = 'modelparams.yaml',
+                base_path = ""):
         """
         Base Class of the trajectory planning controller using ACADOS
         Input: 
@@ -33,9 +35,11 @@ class MPCC():
 
         self.acados_solver = None
 
+        self.base_path = base_path
+
         with open(params_file) as file:
             self.params = yaml.load(file, Loader= yaml.FullLoader)
-        self.acados_model.name = "traj_planning_kin"
+        self.acados_model.name = "traj_planning"
         self.ACADOS_setup()
 
     def define_sys(self):
@@ -275,9 +279,11 @@ class MPCC():
         self.ocp.solver_options.qp_solver_iter_max = 100
         self.ocp.solver_options.nlp_solver_step_length = 0.5
         self.ocp.solver_options.print_level = 0
+
+        self.ocp.code_export_directory = os.path.join(self.base_path, 'c_generated_code')
         #self.ocp.solver_options.tol = 1e-3
 
-        self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_tracking_acados.json")
+        self.acados_solver = AcadosOcpSolver(self.ocp, json_file="traj_planning_acados.json")
 
     def solve_itr(self, ref, x_cur, x_init = None, u_init = None):
         for stageidx  in range(self.N):
