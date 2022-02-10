@@ -27,6 +27,23 @@ class Track:
 
         # variables for plotting
         self.track_bound = None
+    
+    
+
+    def _interp_s(self, s):
+        '''
+        Given a list of s (progress since start), return corresponing (x,y) points  
+        on the track. In addition, return slope of trangent line on those points
+        '''
+        n = len(s)
+        
+        interp_pt =  self.center_line.getValue(s)
+        slope = np.zeros(n)
+
+        for i in range(n):
+            deri = self.center_line.getDerivative(s[i])
+            slope[i] = np.arctan2(deri[1], deri[0])
+        return interp_pt.T, slope
 
     def interp(self, theta_list):
         '''
@@ -38,22 +55,14 @@ class Track:
         else:
             s = np.array(theta_list)/self.length
             s[s>1] = 1
-        n = len(s)
-        
-        interp_pt =  self.center_line.getValue(s)
-        slope = np.zeros(n)
-
-        for i in range(n):
-            deri = self.center_line.getDerivative(s[i])
-            slope[i] = np.arctan2(deri[1], deri[0])
-        return interp_pt.T, slope
+        return self._interp_s(s)
     
-    def project_points(self, points):
+    def get_closest_pts(self, points):
         '''
         Points have [2xn] shape
         '''
-        
-        s, error = self.center_line.projectPoint(points, eps=1e-3)
+        s, _ = self.center_line.projectPoint(points.T, eps=1e-3)
+        return self._interp_s(s)
         
     def project_point(self, point):
         s, _ = self.center_line.projectPoint(point,eps=1e-3)
