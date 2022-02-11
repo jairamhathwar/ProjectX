@@ -1,33 +1,51 @@
-from pyspline.pyCurve import Curve
 import numpy as np
+import matplotlib.pyplot as plt
+from ilqr import iLQR
+from track import Track
+import yaml
 
 
-theta = np.linspace(0, 2*np.pi, 1000)
-x = np.cos(theta)
-y = np.sin(theta)
 
-c = Curve(x = x, y = y, k=3)
+y1 = np.linspace(0,2,100,endpoint=False)
+x1 = np.zeros_like(y1)
 
-points = np.array([[1,1], [-1,1], [-1,-1],[1,-1]])
+x2 = -np.linspace(1,5,100, endpoint=False)
+y2 = np.zeros_like(x2)+3
 
-s, _ = c.projectPoint(points, eps=1e-3)
+# y3 = np.linspace(1,4,100,endpoint=False)+5
+# x3 = np.zeros_like(y3)+3
 
-pt_ref = c.getValue(s)
-slope = np.zeros_like(s)
-for i in range(4):
-    deri = c.getDerivative(s[i])
-    slope[i] = np.arctan2(deri[1], deri[0])
+x = np.concatenate([x1,x2])
+y = np.concatenate([y1,y2])
 
-T = np.array([np.sin(slope), -np.cos(slope)])
 
-error = (points - pt_ref).T
-c = np.einsum('an,an->n', T, error)
 
-b = np.exp(c)
-b_dot = np.einsum('n,an->an', b, T)
-b_ddot = np.einsum('n,abn->abn', (1**2)*b, np.einsum('an,bn->abn',T, T))
 
-print(b_ddot[:,:,0])
+track = Track(np.array([x,y]), 0.5, 0.5)
 
-# Left is negative
-# Right is positive
+
+params_file = 'modelparams.yaml'
+with open(params_file) as file:
+    params = yaml.load(file, Loader= yaml.FullLoader)
+
+solver = iLQR(track, params)
+
+x_cur =np.array([0.6, 0, 5, np.pi/2])
+states, controls = solver.solve(x_cur)
+#print(controls)
+track.plot_track()
+plt.plot(states[0,:], states[1,:])
+plt.axis('equal')
+
+plt.figure()
+plt.plot(states[2,:], label='v')
+plt.plot(states[3,:], label='psi')
+plt.plot(controls[0,:], '--', label='a')
+plt.plot(controls[1,:], '--', label='delta')
+plt.legend()
+
+
+plt.show()
+
+
+

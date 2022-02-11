@@ -3,8 +3,10 @@ from matplotlib.pyplot import close
 import numpy as np
 
 class Constraints:
-    def __init__(self, params, track) -> None:
+    def __init__(self, params, track):
         self.track = track
+        self.T = params['T']
+        self.N = params['N']
         
         self.L = params['l_r']+params['l_f']
         self.delta_min = params['delta_min']
@@ -39,20 +41,22 @@ class Constraints:
 
     def get_cost(self, states, controls, closest_pt, slope):
         '''Road Boundary cost'''
-        dx = states[:,0] - closest_pt[:,0]
-        dy = states[:,1] - closest_pt[:,1]
+        dx = states[0,:] - closest_pt[0,:]
+        dy = states[1,:] - closest_pt[1,:]
         d = np.sin(slope)*dx - np.cos(slope)*dy
 
         L_boundary = self.q1_road*np.exp(self.q2_road*(d-self.track.width_right)) \
                         + self.q1_road*np.exp(self.q2_road*(self.track.width_left-d))
+        #print('L_boundary', L_boundary)
         L_vel = self.q1_v*np.exp(self.q2_v*(states[2,:] - self.v_max)) \
                         + self.q1_v*np.exp(-states[2,:]*self.q2_v)
+        #print('L_vel', L_vel)
         L_steer = self.q1_delta*np.exp(self.q2_delta*(controls[0,:] - self.delta_max)) \
                         + self.q1_delta*np.exp(self.q2_delta*(self.delta_min -controls[0,:]))
         L_accel = self.q1_accel*np.exp(self.q2_accel*(controls[1,:] - self.a_max)) \
                         + self.q1_accel*np.exp(self.q2_accel*(self.a_min -controls[1,:]))
 
-        return L_accel+L_vel+L_boundary+L_steer
+        return L_accel+L_vel+L_steer+L_boundary
 
     def road_boundary_derivate(self, nominal_states, closest_pt, slope):
         ''' Road Boundary '''
@@ -96,12 +100,13 @@ class Constraints:
         
         ''' Steering Delta Bound'''
         # delta upper bound
-        transform = np.array([self.ones, self.zeros])
-        c = nominal_controls[0,:] - self.delta_max
+        transform = np.array([self.zeros, self.ones])
+        c = nominal_controls[1,:] - self.delta_max
         L_u_u, L_uu_u = self.barrier_function(self.q1_delta, self.q2_delta, c, transform)
         
+        #print(L_uu_u)
         # delta lower bound
-        c =  self.delta_min - nominal_controls[0,:]
+        c =  self.delta_min - nominal_controls[1,:]
         L_u_l, L_uu_l = self.barrier_function(self.q1_delta, self.q2_delta, c, -transform)
 
         return L_u_l+L_u_u, L_uu_l+L_uu_u
@@ -109,11 +114,11 @@ class Constraints:
     def accel_bound_derivative(self, nominal_controls):
         ''' Acceleration Bound'''
         # upper bound  a_max
-        transform = np.array([self.zeros, self.ones])
-        c = nominal_controls[1,:] - self.a_max
+        transform = np.array([self.ones, self.zeros])
+        c = nominal_controls[0,:] - self.a_max
         L_u_u, L_uu_u = self.barrier_function(self.q1_accel, self.q2_accel, c, transform)
 
-        c = self.a_min - nominal_controls[1,:]
+        c = self.a_min - nominal_controls[0,:]
         L_u_l, L_uu_l = self.barrier_function(self.q1_accel, self.q2_accel, c, -transform)
 
         return L_u_l+L_u_u, L_uu_l+L_uu_u
