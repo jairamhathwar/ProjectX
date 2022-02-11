@@ -9,6 +9,10 @@ class Dynamics:
     """
     def __init__(self, T, N, params):
         
+
+        self.dim_x = 4
+        self.dim_u = 2
+        
         # load parameters
         self.L = params['l_r']+params['l_f']
         self.delta_min = params['delta_min']
