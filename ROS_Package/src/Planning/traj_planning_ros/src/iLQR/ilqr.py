@@ -14,7 +14,7 @@ class iLQR():
         
         self.ref_path = ref_path
 
-        self.steps = 500
+        self.steps = 100
         #self.line_search_step = 0.5
         self.tol = 1e-5
         self.dynamics = Dynamics(params)
@@ -38,8 +38,14 @@ class iLQR():
             u = nominal_controls[:,i]+alpha*k+ K @ (X[:, i] - nominal_states[:, i])
             #print('U', i,  U[:,i])
             X[:,i+1], U[:,i] = self.dynamics.forward_step(X[:,i], u, step=10)
+        
+        # closest_pt, slope, theta = self.ref_path.get_closest_pts(X[:2,:])
+        # print(X[-1,:])
+        closest_pt, slope = self.ref_path.interp(X[-1,:])
+        # X[-1,:] = theta
+        # U[-1,:-1] = theta[1:] - theta[:-1] 
 
-        J, closest_pt, slope = self.cost.get_cost(X, U)
+        J = self.cost.get_cost(X, U, closest_pt, slope)
         
         return X, U, J, closest_pt, slope
         
@@ -57,9 +63,9 @@ class iLQR():
         for i in range(self.N-2, -1, -1):
             Q_x = L_x[:,i] + fx[:,:,i].T @ V_x
             Q_u = L_u[:,i] + fu[:,:,i].T @ V_x
-            Q_xx = L_xx[:,:,i] + fx[:,:,i].T @ V_xx @ fx[:,:,i] + 0.05*np.eye(4)
+            Q_xx = L_xx[:,:,i] + fx[:,:,i].T @ V_xx @ fx[:,:,i] + 0.05*np.eye(self.dim_x)
             Q_ux =  fu[:,:,i].T @ V_xx @ fx[:,:,i] # L_uxis 0
-            Q_uu = L_uu[:,:,i] + fu[:,:,i].T @ V_xx @ fu[:,:,i] + 0.1*np.eye(2)
+            Q_uu = L_uu[:,:,i] + fu[:,:,i].T @ V_xx @ fu[:,:,i] + 0.1*np.eye(self.dim_u)
             
             k_open_loop[:,i] = -np.linalg.lstsq(Q_uu, Q_u, rcond=None)[0]            
             K_closed_loop[:, :, i] = -np.linalg.lstsq(Q_uu, Q_ux, rcond=None)[0]
@@ -80,8 +86,10 @@ class iLQR():
         states[:,0] = cur_state
         for i in range(1,self.N):
             states[:,i],_ = self.dynamics.forward_step(states[:,i-1], controls[:,i-1], step = 10)
-
-        J, closest_pt, slope = self.cost.get_cost(states, controls)
+        closest_pt, slope, theta = self.ref_path.get_closest_pts(states[:2,:])
+        states[-1,:] = theta
+        controls[-1,:-1] = theta[1:] - theta[:-1] 
+        J = self.cost.get_cost(states, controls,  closest_pt, slope)
 
         converged = False
         for i in range(self.steps):
@@ -111,8 +119,7 @@ class iLQR():
                     controls_local = U_new
                     closest_pt_local = closest_pt_new
                     slope_local = slope_new
-                    if np.abs((J_new - J_local_opt)) < 1e-2:
-                        
+                    if np.abs((J_new - J_local_opt)/J) < self.tol:
                         break
                 
             if use_local_opt:
@@ -121,19 +128,20 @@ class iLQR():
                 controls = controls_local
                 closest_pt = closest_pt_local
                 slope = slope_local
-            #print('Step ', i, "with cost ", J) 
+            print('Step ', i, "with cost ", J) 
             
-            # self.ref_path.plot_track()
-            # plt.plot(states[0,:], states[1,:])
-            # plt.axis('equal')
+            self.ref_path.plot_track()
+            plt.plot(states[0,:], states[1,:])
+            plt.plot(closest_pt[0,:], closest_pt[1,:], '--')
+            plt.axis('equal')
 
-            # # plt.figure()
-            # # plt.plot(states[2,:], label='v')
-            # # plt.plot(states[3,:], label='psi')
-            # # plt.plot(controls[0,:], '--', label='a')
-            # # plt.plot(controls[1,:], '--', label='delta')
-            # # plt.legend()
-            # plt.show()
+            # plt.figure()
+            # plt.plot(states[2,:], label='v')
+            # plt.plot(states[3,:], label='psi')
+            # plt.plot(controls[0,:], '--', label='a')
+            # plt.plot(controls[1,:], '--', label='delta')
+            # plt.legend()
+            plt.show()
             if converged:
                 print("converged")
                 break

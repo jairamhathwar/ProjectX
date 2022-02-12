@@ -21,7 +21,7 @@ y = np.concatenate([y1,y2])
 
 
 
-track = Track(np.array([x,y]), 0.5, 0.5)
+track = Track(np.array([x,y]), 0.5, 0.5, False)
 
 
 params_file = 'modelparams.yaml'
@@ -30,7 +30,7 @@ with open(params_file) as file:
 
 solver = iLQR(track, params)
 
-x_cur =np.array([0.6, 0, 5, np.pi/2])
+x_cur =np.array([0, 0, 3, np.pi/2, 0])
 states, controls = solver.solve(x_cur)
 #print(controls)
 track.plot_track()
@@ -40,8 +40,10 @@ plt.axis('equal')
 plt.figure()
 plt.plot(states[2,:], label='v')
 plt.plot(states[3,:], label='psi')
+#plt.plot(states[4,:], label='theta')
 plt.plot(controls[0,:], '--', label='a')
 plt.plot(controls[1,:], '--', label='delta')
+plt.plot(controls[2,:], '--', label='d_theta')
 plt.legend()
 
 

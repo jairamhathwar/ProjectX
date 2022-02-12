@@ -22,7 +22,7 @@ C_d: 0.6420
 
 # box constraints
 # velocity
-v_max: 5 # max long vel [m/s]
+v_max: 3 # max long vel [m/s]
 v_min: 0 #0.05 # min long vel [m/s]
 
 # steering
@@ -42,8 +42,9 @@ alat_max: 5.0
 alat_min: -5.0
 
 # weights for the cost
-Q_pos: 10
-Q_vel:  1
+Q_l: 1000
+Q_c:  10
+Q_theta: 5
 R_accel: 0.1
 R_delta: 0.1
 

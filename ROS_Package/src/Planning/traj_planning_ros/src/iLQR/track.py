@@ -62,7 +62,8 @@ class Track:
         Points have [2xn] shape
         '''
         s, _ = self.center_line.projectPoint(points.T, eps=1e-3)
-        return self._interp_s(s)
+        closest_pt, slope = self._interp_s(s)
+        return closest_pt, slope, s*self.length
         
     def project_point(self, point):
         s, _ = self.center_line.projectPoint(point,eps=1e-3)

@@ -7,6 +7,7 @@ class Constraints:
         self.track = track
         self.T = params['T']
         self.N = params['N']
+        self.dt = self.T/(self.N-1)
         
         self.L = params['l_r']+params['l_f']
         self.delta_min = params['delta_min']
@@ -17,6 +18,8 @@ class Constraints:
 
         self.alat_max = params['alat_max']
         self.alat_min = params['alat_min']
+        
+        self.dtheta_max = 3*self.v_max
 
         # parameters for barrier functions
         self.q1_accel = params['q1_accel']
@@ -47,6 +50,7 @@ class Constraints:
 
         L_boundary = self.q1_road*np.exp(self.q2_road*(d-self.track.width_right)) \
                         + self.q1_road*np.exp(self.q2_road*(self.track.width_left-d))
+        
         #print('L_boundary', L_boundary)
         L_vel = self.q1_v*np.exp(self.q2_v*(states[2,:] - self.v_max)) \
                         + self.q1_v*np.exp(-states[2,:]*self.q2_v)
@@ -55,13 +59,15 @@ class Constraints:
                         + self.q1_delta*np.exp(self.q2_delta*(self.delta_min -controls[0,:]))
         L_accel = self.q1_accel*np.exp(self.q2_accel*(controls[1,:] - self.a_max)) \
                         + self.q1_accel*np.exp(self.q2_accel*(self.a_min -controls[1,:]))
+        L_dtheta = self.q1_v*np.exp(self.q2_v*(controls[-1,:] - self.delta_max)) \
+                        + self.q1_v*np.exp(-controls[-1,:]*self.q2_v)
 
-        return L_accel+L_vel+L_steer+L_boundary
+        return L_accel+L_vel+L_steer+L_boundary+L_dtheta
 
     def road_boundary_derivate(self, nominal_states, closest_pt, slope):
         ''' Road Boundary '''
         # constraint due to right road boundary. smaller than right_width             
-        transform = np.array([np.sin(slope), -np.cos(slope), self.zeros, self.zeros])
+        transform = np.array([np.sin(slope), -np.cos(slope), self.zeros, self.zeros, self.zeros])
         
         ref_states = np.zeros_like(nominal_states)
         ref_states[:2, :] = closest_pt
@@ -83,7 +89,7 @@ class Constraints:
         '''
         '''Velocity bound'''
         # less than V_max
-        transform = np.array([self.zeros, self.zeros, self.ones, self.zeros])
+        transform = np.array([self.zeros, self.zeros, self.ones, self.zeros, self.zeros])
         c = nominal_states[2,:] - self.v_max
         L_x_u, L_xx_u = self.barrier_function(self.q1_v, self.q2_v, c, transform)
 
@@ -93,6 +99,22 @@ class Constraints:
 
         return L_x_u+L_x_l, L_xx_u+L_xx_l
     
+    def dtheta_bound_derivate(self, nominal_controls):
+        '''
+        nominal_states: [d=4xN] array
+        '''
+        '''Velocity bound'''
+        # less than V_max
+        transform = np.array([self.zeros, self.zeros, self.ones])
+        c = nominal_controls[-1,:] - self.dtheta_max
+        L_u_u, L_uu_u = self.barrier_function(self.q1_v, self.q2_v, c, transform)
+
+        # larger than 0
+        c = -nominal_controls[-1,:]
+        L_u_l, L_uu_l = self.barrier_function(self.q1_v, self.q2_v, c, -transform)
+
+        return L_u_l+L_u_u, L_uu_l+L_uu_u
+    
     def steering_bound_derivative(self, nominal_controls):
         '''
         nominal_control: [d=2xN] array
@@ -100,7 +122,7 @@ class Constraints:
         
         ''' Steering Delta Bound'''
         # delta upper bound
-        transform = np.array([self.zeros, self.ones])
+        transform = np.array([self.zeros, self.ones, self.zeros])
         c = nominal_controls[1,:] - self.delta_max
         L_u_u, L_uu_u = self.barrier_function(self.q1_delta, self.q2_delta, c, transform)
         
@@ -114,7 +136,7 @@ class Constraints:
     def accel_bound_derivative(self, nominal_controls):
         ''' Acceleration Bound'''
         # upper bound  a_max
-        transform = np.array([self.ones, self.zeros])
+        transform = np.array([self.ones, self.zeros, self.zeros])
         c = nominal_controls[0,:] - self.a_max
         L_u_u, L_uu_u = self.barrier_function(self.q1_accel, self.q2_accel, c, transform)
 
