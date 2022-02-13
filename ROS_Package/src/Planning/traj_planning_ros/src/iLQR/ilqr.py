@@ -17,6 +17,10 @@ class iLQR():
         self.steps = 100
         #self.line_search_step = 0.5
         self.tol = 1e-5
+        self.lambad = 1
+        self.lambad_max = 10
+        self.lambad_min = 1e-5
+
         self.dynamics = Dynamics(params)
         self.alphas = 1.1**(-np.arange(10)**2)
 
@@ -33,39 +37,40 @@ class iLQR():
         for i in range(self.N-1):
             K = K_closed_loop[:,:,i]
             k = k_open_loop[:,i]
-            #print('k', i, k)
-            #print('K', i, K)
             u = nominal_controls[:,i]+alpha*k+ K @ (X[:, i] - nominal_states[:, i])
-            #print('U', i,  U[:,i])
             X[:,i+1], U[:,i] = self.dynamics.forward_step(X[:,i], u, step=10)
         
-        # closest_pt, slope, theta = self.ref_path.get_closest_pts(X[:2,:])
+        closest_pt, slope, theta = self.ref_path.get_closest_pts(X[:2,:])
         # print(X[-1,:])
-        closest_pt, slope = self.ref_path.interp(X[-1,:])
+        #closest_pt, slope = self.ref_path.interp(X[-1,:])
         # X[-1,:] = theta
         # U[-1,:-1] = theta[1:] - theta[:-1] 
 
-        J = self.cost.get_cost(X, U, closest_pt, slope)
+        J, L_state, L_progress, L_control, L_constraint = self.cost.get_cost(X, U, closest_pt, slope)
+        # print(L_state)
         
         return X, U, J, closest_pt, slope
+
+    def expected_cost_reduction(self, Q_u, Q_uu, k):
+        return -Q_u.T.dot(k) - 0.5 * k.T.dot(Q_uu.dot(k))
         
     def backward_pass(self, nominal_states, nominal_controls, closest_pt, slope):
         L_x, L_xx, L_u, L_uu = self.cost.get_derivatives(nominal_states, nominal_controls, closest_pt, slope)
-        #print(L_u)
+        
         fx, fu = self.dynamics.get_AB_matrix(nominal_states, nominal_controls)
 
         k_open_loop = np.zeros((self.dim_u, self.N-1))
         K_closed_loop = np.zeros((self.dim_u, self.dim_x, self.N-1))
-
+        expected_cost_redu = 0
         # derivative of value function at final step
         V_x = L_x[:,-1]
         V_xx = L_xx[:,:,-1]
         for i in range(self.N-2, -1, -1):
             Q_x = L_x[:,i] + fx[:,:,i].T @ V_x
             Q_u = L_u[:,i] + fu[:,:,i].T @ V_x
-            Q_xx = L_xx[:,:,i] + fx[:,:,i].T @ V_xx @ fx[:,:,i] + 0.05*np.eye(self.dim_x)
+            Q_xx = L_xx[:,:,i] + fx[:,:,i].T @ V_xx @ fx[:,:,i]  + self.lambad*np.eye(self.dim_x)
             Q_ux =  fu[:,:,i].T @ V_xx @ fx[:,:,i] # L_uxis 0
-            Q_uu = L_uu[:,:,i] + fu[:,:,i].T @ V_xx @ fu[:,:,i] + 0.1*np.eye(self.dim_u)
+            Q_uu = L_uu[:,:,i] + fu[:,:,i].T @ V_xx @ fu[:,:,i] + self.lambad*np.eye(self.dim_u)
             
             k_open_loop[:,i] = -np.linalg.lstsq(Q_uu, Q_u, rcond=None)[0]            
             K_closed_loop[:, :, i] = -np.linalg.lstsq(Q_uu, Q_ux, rcond=None)[0]
@@ -73,34 +78,46 @@ class iLQR():
             # Update value function derivative for the previous time step
             V_x = Q_x - K_closed_loop[:,:,i].T @ Q_uu @ k_open_loop[:,i]
             V_xx = Q_xx - K_closed_loop[:,:,i].T @ Q_uu @ K_closed_loop[:,:,i]
+            expected_cost_redu += self.expected_cost_reduction(Q_u, Q_uu, k_open_loop[:,i])
+        return K_closed_loop, k_open_loop, expected_cost_redu
 
-        return K_closed_loop, k_open_loop
-
-    def solve(self, cur_state, controls = None):
+    def solve(self, cur_state, controls = None, debug = False):
+        self.lambad = 10
         time0 = time.time()
         if controls is None:
             controls = np.zeros((self.dim_u, self.N))
-            #controls[0,:] = 1
-        controls[-1,:] = cur_state[-1]
+            
+        #controls[-1,:] = 4.5
         states = np.zeros((self.dim_x, self.N))
         states[:,0] = cur_state
         for i in range(1,self.N):
             states[:,i],_ = self.dynamics.forward_step(states[:,i-1], controls[:,i-1], step = 10)
         closest_pt, slope, theta = self.ref_path.get_closest_pts(states[:2,:])
+        #closest_pt, slope = self.ref_path.interp(states[-1,:])
         # states[-1,:] = theta
         # controls[-1,:-1] = theta[1:] - theta[:-1] 
-        J = self.cost.get_cost(states, controls,  closest_pt, slope)
+        J, L_state, L_progress, L_control, L_constraint = self.cost.get_cost(states, controls,  closest_pt, slope)
+        print("Init Step with cost ", J) 
+        if debug:               
+            self.ref_path.plot_track()
+            plt.plot(states[0,:], states[1,:])
+            plt.plot(closest_pt[0,:], closest_pt[1,:], '--')
+            plt.axis('equal')
+
+            plt.figure()
+            plt.plot(states[2,:], label='v')
+            plt.plot(states[3,:], label='psi')
+            plt.plot(controls[0,:], '--', label='a')
+            plt.plot(controls[1,:], '--', label='delta')
+            plt.legend()
+            plt.show()
 
         converged = False
         for i in range(self.steps):
-            
-            #print("step", i)
-            K_closed_loop, k_open_loop = self.backward_pass(states, controls, closest_pt, slope)
-            J_local_opt = 1e15
-            use_local_opt = False
+            K_closed_loop, k_open_loop, expected_cost_redu = self.backward_pass(states, controls, closest_pt, slope)
             for alpha in self.alphas :
                 X_new, U_new, J_new, closest_pt_new, slope_new = self.forward_pass(states, controls, K_closed_loop, k_open_loop, alpha)
-                
+                print(J_new)
                 if J_new<J:
                     if np.abs((J - J_new) / J) < self.tol:
                         converged = True
@@ -110,38 +127,26 @@ class iLQR():
                     controls = U_new
                     closest_pt = closest_pt_new
                     slope = slope_new
-                    use_local_opt = False
+                    self.lambad *= 0.7
                     break
-                elif J_new<J_local_opt:
-                    use_local_opt = True
-                    J_local_opt = J_new
-                    states_local = X_new
-                    controls_local = U_new
-                    closest_pt_local = closest_pt_new
-                    slope_local = slope_new
-                    if np.abs((J_new - J_local_opt)/J) < self.tol:
-                        break
+                else:
+                    self.lambad *= 2.0
+                self.lambad = min(max(self.lambad_min, self.lambad), self.lambad_max)
                 
-            if use_local_opt:
-                J = J_local_opt
-                states = states_local
-                controls = controls_local
-                closest_pt = closest_pt_local
-                slope = slope_local
             print('Step ', i, "with cost ", J) 
-            
-            # self.ref_path.plot_track()
-            # plt.plot(states[0,:], states[1,:])
-            # plt.plot(closest_pt[0,:], closest_pt[1,:], '--')
-            # plt.axis('equal')
+            if debug: 
+                self.ref_path.plot_track()
+                plt.plot(states[0,:], states[1,:])
+                plt.plot(closest_pt[0,:], closest_pt[1,:], '--')
+                plt.axis('equal')
 
-            # plt.figure()
-            # plt.plot(states[2,:], label='v')
-            # plt.plot(states[3,:], label='psi')
-            # plt.plot(controls[0,:], '--', label='a')
-            # plt.plot(controls[1,:], '--', label='delta')
-            # plt.legend()
-            plt.show()
+                plt.figure()
+                plt.plot(states[2,:], label='v')
+                plt.plot(states[3,:], label='psi')
+                plt.plot(controls[0,:], '--', label='a')
+                plt.plot(controls[1,:], '--', label='delta')
+                plt.legend()
+                plt.show()
             if converged:
                 print("converged")
                 break

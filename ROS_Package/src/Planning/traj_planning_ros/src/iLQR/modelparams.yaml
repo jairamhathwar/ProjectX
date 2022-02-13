@@ -42,23 +42,23 @@ alat_max: 5.0
 alat_min: -5.0
 
 # weights for the cost
-Q_l: 100
-Q_c:  10
-Q_theta: 5
-R_accel: 0.1
-R_delta: 0.1
+Q_v: 10
+Q_c:  100
+Q_theta: 10
+R_accel: 0.5
+R_delta: 1
 
 # parameter for soft constraints
-q1_accel: 0.1 #
+q1_accel: 1 #
 q2_accel: 1
 
-q1_delta: 0.1 #0.1
+q1_delta: 1 #0.1
 q2_delta: 1
 
-q1_v: 0.1
+q1_v: 1
 q2_v: 1
 
-q1_road: 0.1
+q1_road: 1
 q2_road: 0.5
 
 q1_lat: 1
