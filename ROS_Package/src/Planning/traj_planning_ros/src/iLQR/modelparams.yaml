@@ -42,7 +42,7 @@ alat_max: 5.0
 alat_min: -5.0
 
 # weights for the cost
-Q_l: 1000
+Q_l: 100
 Q_c:  10
 Q_theta: 5
 R_accel: 0.1

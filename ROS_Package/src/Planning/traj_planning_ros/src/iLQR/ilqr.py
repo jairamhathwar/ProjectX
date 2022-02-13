@@ -81,14 +81,14 @@ class iLQR():
         if controls is None:
             controls = np.zeros((self.dim_u, self.N))
             #controls[0,:] = 1
-        
+        controls[-1,:] = cur_state[-1]
         states = np.zeros((self.dim_x, self.N))
         states[:,0] = cur_state
         for i in range(1,self.N):
             states[:,i],_ = self.dynamics.forward_step(states[:,i-1], controls[:,i-1], step = 10)
         closest_pt, slope, theta = self.ref_path.get_closest_pts(states[:2,:])
-        states[-1,:] = theta
-        controls[-1,:-1] = theta[1:] - theta[:-1] 
+        # states[-1,:] = theta
+        # controls[-1,:-1] = theta[1:] - theta[:-1] 
         J = self.cost.get_cost(states, controls,  closest_pt, slope)
 
         converged = False
@@ -130,10 +130,10 @@ class iLQR():
                 slope = slope_local
             print('Step ', i, "with cost ", J) 
             
-            self.ref_path.plot_track()
-            plt.plot(states[0,:], states[1,:])
-            plt.plot(closest_pt[0,:], closest_pt[1,:], '--')
-            plt.axis('equal')
+            # self.ref_path.plot_track()
+            # plt.plot(states[0,:], states[1,:])
+            # plt.plot(closest_pt[0,:], closest_pt[1,:], '--')
+            # plt.axis('equal')
 
             # plt.figure()
             # plt.plot(states[2,:], label='v')

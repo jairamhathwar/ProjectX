@@ -98,7 +98,7 @@ class Cost:
         
         # shape [4xN]
         L_x = np.einsum('abn, bn->an', Q_trans, error)
-        L_x[-1,:] = np.cos(slope)*error[0,:]+np.sin(slope)*error[1,:]-self.Q_theta
+        L_x[-1,:] = self.Q_l*(np.cos(slope)*error[0,:]+np.sin(slope)*error[1,:])-self.Q_theta
         # shape [4x4xN]
         L_xx = Q_trans
         L_xx[-1,-1,:] = self.Q_l
