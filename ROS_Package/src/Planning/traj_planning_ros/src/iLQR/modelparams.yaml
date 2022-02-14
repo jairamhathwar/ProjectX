@@ -22,7 +22,7 @@ C_d: 0.6420
 
 # box constraints
 # velocity
-v_max: 3 # max long vel [m/s]
+v_max: 4 # max long vel [m/s]
 v_min: 0 #0.05 # min long vel [m/s]
 
 # steering
@@ -38,33 +38,33 @@ d_max: 3.5
 a_min: -3.5
 a_max: 3.5
 
-alat_max: 5.0
-alat_min: -5.0
+alat_max: 4.0
+alat_min: -4.0
 
 # weights for the cost
-Q_v: 10
-Q_c:  100
-Q_theta: 10
-R_accel: 0.5
+Q_v: 2
+Q_c:  20
+Q_theta: 1
+R_accel: 1
 R_delta: 1
 
 # parameter for soft constraints
-q1_accel: 1 #
-q2_accel: 1
+# q1_accel: 0 # 0.1 #
+# q2_accel: 1
 
-q1_delta: 1 #0.1
-q2_delta: 1
+# q1_delta: 0 #0.1 #0.1
+# q2_delta: 1
 
-q1_v: 1
-q2_v: 1
+q1_v: 0.4
+q2_v: 2
 
-q1_road: 1
-q2_road: 0.5
+q1_road: 0.5
+q2_road: 2
 
-q1_lat: 1
-q2_lat: 1
+q1_lat: 0.2
+q2_lat: 5
 
 # optimizer parameters
 T: 2
-N: 21
+N: 11
 

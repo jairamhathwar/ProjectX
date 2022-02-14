@@ -19,14 +19,12 @@ class Constraints:
         self.alat_max = params['alat_max']
         self.alat_min = params['alat_min']
         
-        self.dtheta_max = 1.5*self.v_max
-
         # parameters for barrier functions
-        self.q1_accel = params['q1_accel']
-        self.q2_accel = params['q2_accel']
+        # self.q1_accel = params['q1_accel']
+        # self.q2_accel = params['q2_accel']
 
-        self.q1_delta = params['q1_delta']
-        self.q2_delta = params['q2_delta']
+        # self.q1_delta = params['q1_delta']
+        # self.q2_delta = params['q2_delta']
 
         self.q1_v = params['q1_v']
         self.q2_v = params['q2_v']
@@ -52,20 +50,28 @@ class Constraints:
         
         L_vel = self.q1_v*np.exp(self.q2_v*(states[2,:] - self.v_max)) \
                         + self.q1_v*np.exp(-states[2,:]*self.q2_v)
+        #print(np.exp(states[2,:] - self.v_max))
 
         # loss due to control
-        L_steer = self.q1_delta*np.exp(self.q2_delta*(controls[0,:] - self.delta_max)) \
-                        + self.q1_delta*np.exp(self.q2_delta*(self.delta_min -controls[0,:]))
-        L_accel = self.q1_accel*np.exp(self.q2_accel*(controls[1,:] - self.a_max)) \
-                        + self.q1_accel*np.exp(self.q2_accel*(self.a_min -controls[1,:]))
-        L_dtheta = self.q1_v*np.exp(self.q2_v*(controls[-1,:] - self.dtheta_max)) \
-                        + self.q1_v*np.exp(-controls[-1,:]*self.q2_v)
-        # terminal state does not have a control loss
-        L_steer[-1] = 0
-        L_accel[-1] = 0
-        L_dtheta[-1] = 0
+        # L_steer = self.q1_delta*np.exp(self.q2_delta*(controls[0,:] - self.delta_max)) \
+        #                 + self.q1_delta*np.exp(self.q2_delta*(self.delta_min -controls[0,:]))
+        # L_accel = self.q1_accel*np.exp(self.q2_accel*(controls[1,:] - self.a_max)) \
+        #                 + self.q1_accel*np.exp(self.q2_accel*(self.a_min -controls[1,:]))
+
+        # calculate the acceleration
+        accel = states[2,:]**2*np.tan(controls[1,:])/self.L
+        error_ub = accel - self.alat_max
+        error_lb = self.alat_min - accel
+
+        b_ub = self.q1_lat*np.exp(self.q2_lat*error_ub)
+        b_lb = self.q1_lat*np.exp(self.q2_lat*error_lb)
+        L_lat = b_lb+b_ub
         
-        return L_accel+L_vel+L_steer+L_boundary+L_dtheta
+        # terminal state does not have a control loss
+        # L_steer[-1] = 0
+        # L_accel[-1] = 0
+        
+        return L_vel+L_boundary+L_lat #+L_accel+L_steer
 
     def road_boundary_derivate(self, nominal_states, closest_pt, slope):
         ''' Road Boundary '''
@@ -101,23 +107,7 @@ class Constraints:
         L_x_l, L_xx_l = self.barrier_function(self.q1_v, self.q2_v, c, -transform)
 
         return L_x_u+L_x_l, L_xx_u+L_xx_l
-    
-    def dtheta_bound_derivate(self, nominal_controls):
-        '''
-        nominal_states: [d=4xN] array
-        '''
-        '''Velocity bound'''
-        # less than V_max
-        transform = np.array([self.zeros, self.zeros, self.ones])
-        c = nominal_controls[-1,:] - self.dtheta_max
-        L_u_u, L_uu_u = self.barrier_function(self.q1_v, self.q2_v, c, transform)
-
-        # larger than 0
-        c = -nominal_controls[-1,:]
-        L_u_l, L_uu_l = self.barrier_function(self.q1_v, self.q2_v, c, -transform)
-
-        return L_u_l+L_u_u, L_uu_l+L_uu_u
-    
+        
     def steering_bound_derivative(self, nominal_controls):
         '''
         nominal_control: [d=2xN] array
@@ -169,7 +159,20 @@ class Constraints:
         da_dxx = 2*np.tan(nominal_controls[1,:])/self.L
 
         da_du = nominal_states[2,:]**2/(np.cos(nominal_controls[1,:])**2*self.L)
-        da_dux = nominal_states[2,:]**2*np.sin(nominal_controls[1,:])/(np.cos(nominal_controls[1,:])**3*self.L)
+        da_duu = nominal_states[2,:]**2*np.sin(nominal_controls[1,:])/(np.cos(nominal_controls[1,:])**3*self.L)
+
+        da_dux = 2*nominal_states[2,:]/(np.cos(nominal_controls[1,:])**2*self.L)
+
+        L_x[2,:] = self.q2_lat*(b_ub-b_lb)*da_dx
+        L_u[1,:] = self.q2_lat*(b_ub-b_lb)*da_du
+
+        L_xx[2,2,:] = self.q2_lat**2*(b_ub+b_lb)*da_dx**2 + self.q2_lat*(b_ub-b_lb)*da_dxx
+        L_uu[1,1,:] = self.q2_lat**2*(b_ub+b_lb)*da_du**2 + self.q2_lat*(b_ub-b_lb)*da_duu
+
+        L_ux[1,2,:] = self.q2_lat**2*(b_ub+b_lb)*da_dx*da_du + self.q2_lat*(b_ub-b_lb)*da_dux
+        return L_x, L_xx, L_u, L_uu, L_ux
+
+
 
     def barrier_function(self, q1, q2, c, c_dot):
         '''

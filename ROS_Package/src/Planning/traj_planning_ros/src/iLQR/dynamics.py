@@ -47,7 +47,7 @@ class Dynamics:
             d_x = (next_state[2]*dt+0.5*accel*dt**2)*np.cos(next_state[3])
             d_y = (next_state[2]*dt+0.5*accel*dt**2)*np.sin(next_state[3])
             d_v = accel*dt
-            d_psi = dt*next_state[3]*np.tan(delta)/self.L
+            d_psi = dt*next_state[2]*np.tan(delta)/self.L
             next_state = next_state + np.array([d_x, d_y, d_v, d_psi])
             next_state[2] = max(0, next_state[2])
             #next_state[2] = max(0, next_state[2])
