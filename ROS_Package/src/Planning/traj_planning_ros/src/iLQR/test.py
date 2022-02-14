@@ -46,7 +46,7 @@ plt.show()
 plt.figure(figsize=(5, 5))
 
 for i in range(itr):
-    states, controls = solver.solve(x_cur, controls = init_control,debug=False)
+    states, controls = solver.solve(x_cur, controls = init_control)
     x_cur = states[:,1]
     history[:,i+1] = x_cur
     init_control[:,:-1] = controls[:,1:]

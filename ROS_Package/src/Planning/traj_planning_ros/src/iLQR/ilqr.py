@@ -14,8 +14,8 @@ class iLQR():
         
         self.ref_path = ref_path
 
-        self.steps = 50
-        #self.line_search_step = 0.5
+        self.steps = 30
+
         self.tol = 1e-3
         self.lambad = 100
         self.lambad_max = 1000
@@ -28,6 +28,8 @@ class iLQR():
         self.dim_u = self.dynamics.dim_u
 
         self.cost = Cost(params, ref_path)
+   
+   
         
     def forward_pass(self, nominal_states, nominal_controls, K_closed_loop, k_open_loop, alpha):
         X = np.zeros_like(nominal_states)
@@ -45,9 +47,8 @@ class iLQR():
         J = self.cost.get_cost(X, U, closest_pt, slope, theta)
         
         return X, U, J, closest_pt, slope
-
-    def expected_cost_reduction(self, Q_u, Q_uu, k):
-        return -Q_u.T.dot(k) - 0.5 * k.T.dot(Q_uu.dot(k))
+ 
+ 
         
     def backward_pass(self, nominal_states, nominal_controls, closest_pt, slope):
         L_x, L_xx, L_u, L_uu, L_ux = self.cost.get_derivatives(nominal_states, nominal_controls, closest_pt, slope)
@@ -60,25 +61,37 @@ class iLQR():
         V_x = L_x[:,-1]
         V_xx = L_xx[:,:,-1]
         
+        #expected_cost_red = 0
+        reg_mat = self.lambad*np.eye(self.dim_u)
+        
+        Q_u_hist = np.zeros([self.dim_u, self.N-1])
+        Q_uu_hist = np.zeros([self.dim_u, self.dim_u, self.N-1])
         for i in range(self.N-2, -1, -1):
             Q_x = L_x[:,i] + fx[:,:,i].T @ V_x
             Q_u = L_u[:,i] + fu[:,:,i].T @ V_x
-            Q_xx = L_xx[:,:,i] + fx[:,:,i].T @ V_xx @ fx[:,:,i] #+ self.lambad*np.eye(self.dim_x)
-            Q_ux =  fu[:,:,i].T @ V_xx @ fx[:,:,i]+L_ux[:,:,i] # L_uxis 0
-            Q_uu = L_uu[:,:,i] + fu[:,:,i].T @ V_xx @ fu[:,:,i] + self.lambad*np.eye(self.dim_u)
-            Q_uu_inv = np.linalg.inv(Q_uu)
+            Q_xx = L_xx[:,:,i] + fx[:,:,i].T @ V_xx @ fx[:,:,i]
+            Q_ux =  fu[:,:,i].T @ V_xx @ fx[:,:,i]+L_ux[:,:,i]
+            Q_uu = L_uu[:,:,i] + fu[:,:,i].T @ V_xx @ fu[:,:,i] 
+            
+            Q_uu_inv = np.linalg.inv(Q_uu+reg_mat)
             k_open_loop[:,i] = -Q_uu_inv@Q_u
             K_closed_loop[:, :, i] = -Q_uu_inv@Q_ux
-            # k_open_loop[:,i] = -np.linalg.lstsq(Q_uu, Q_u, rcond=None)[0]            
-            # K_closed_loop[:, :, i] = -np.linalg.lstsq(Q_uu, Q_ux, rcond=None)[0]
-
+            
             # Update value function derivative for the previous time step
             V_x = Q_x - K_closed_loop[:,:,i].T @ Q_uu @ k_open_loop[:,i]
             V_xx = Q_xx - K_closed_loop[:,:,i].T @ Q_uu @ K_closed_loop[:,:,i]
+            
+            Q_u_hist[:,i] = Q_u
+            Q_uu_hist[:,:,i] = Q_uu
+            
+        expected_cost_red = -np.sum(np.einsum('an, bn->n', Q_u_hist, k_open_loop) + \
+                0.5*np.einsum('an, bn->n', k_open_loop, np.einsum('abn,bn->an', Q_uu_hist, k_open_loop)))
+                
+        return K_closed_loop, k_open_loop, expected_cost_red
 
-        return K_closed_loop, k_open_loop
 
-    def solve(self, cur_state, controls = None, debug = False):
+
+    def solve(self, cur_state, controls = None):
         self.lambad = 100
 
         time0 = time.time()
@@ -93,34 +106,16 @@ class iLQR():
         closest_pt, slope, theta = self.ref_path.get_closest_pts(states[:2,:])
 
         J = self.cost.get_cost(states, controls,  closest_pt, slope, theta)
-        if debug:               
-            self.ref_path.plot_track()
-            plt.plot(states[0,:], states[1,:])
-            plt.plot(closest_pt[0,:], closest_pt[1,:], '--')
-            plt.axis('equal')
-
-            plt.figure()
-            plt.plot(states[2,:], label='v')
-            plt.plot(states[3,:], label='psi')
-            plt.plot(controls[0,:], '--', label='a')
-            plt.plot(controls[1,:], '--', label='delta')
-            plt.legend()
-            plt.show()
-
+        
         converged = False
+        expected_cost_red_prev = 0
+        
         for i in range(self.steps):
-            K_closed_loop, k_open_loop = self.backward_pass(states, controls, closest_pt, slope)
+            K_closed_loop, k_open_loop, expected_cost_red = self.backward_pass(states, controls, closest_pt, slope)
 
-            changed = False
-            max_J_red = None
+            updated = False
             for alpha in self.alphas :
                 X_new, U_new, J_new, closest_pt_new, slope_new = self.forward_pass(states, controls, K_closed_loop, k_open_loop, alpha)
-                J_red = J_new - J
-                if max_J_red:
-                    max_J_red = max(max_J_red, J_red)
-                else:
-                    max_J_red = J_red
-                #print(i, alpha, J_new)
                 if J_new<=J:
                     if np.abs((J - J_new) / J) < self.tol:
                         converged = True   
@@ -129,35 +124,23 @@ class iLQR():
                     controls = U_new
                     closest_pt = closest_pt_new
                     slope = slope_new
-                    changed = True
+                    updated = True
                     break
-            if changed:
+            if updated:
                 self.lambad *= 0.7
-            elif max_J_red<=1:
-                print("early stop", max_J_red)
-                break
             else:
-                print("increase regulation", max_J_red)
                 self.lambad *= 2
+                if abs(expected_cost_red_prev - expected_cost_red)<1e-3:
+                    print("early exit")
+                    break
+                else:
+                    expected_cost_red_prev = expected_cost_red
             self.lambad = min(max(self.lambad_min, self.lambad), self.lambad_max)
-                
-            print('Step ', i, "with cost ", J) 
-            if debug: 
-                self.ref_path.plot_track()
-                plt.plot(states[0,:], states[1,:])
-                plt.plot(closest_pt[0,:], closest_pt[1,:], '--')
-                plt.axis('equal')
-
-                plt.figure()
-                plt.plot(states[2,:], label='v')
-                plt.plot(states[3,:], label='psi')
-                plt.plot(controls[0,:], '--', label='a')
-                plt.plot(controls[1,:], '--', label='delta')
-                plt.legend()
-                plt.show()
+            
             if converged:
                 print("converged")
                 break
+            
         print("exit at step", i, "with final cost ", J, 'in ', time.time()-time0, 'sec')
         return states, controls
 
