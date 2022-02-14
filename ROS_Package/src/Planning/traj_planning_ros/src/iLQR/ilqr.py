@@ -16,7 +16,7 @@ class iLQR():
 
         self.steps = 50
         #self.line_search_step = 0.5
-        self.tol = 1e-4
+        self.tol = 1e-3
         self.lambad = 100
         self.lambad_max = 1000
         self.lambad_min = 1e-3
@@ -59,15 +59,18 @@ class iLQR():
         # derivative of value function at final step
         V_x = L_x[:,-1]
         V_xx = L_xx[:,:,-1]
+        
         for i in range(self.N-2, -1, -1):
             Q_x = L_x[:,i] + fx[:,:,i].T @ V_x
             Q_u = L_u[:,i] + fu[:,:,i].T @ V_x
             Q_xx = L_xx[:,:,i] + fx[:,:,i].T @ V_xx @ fx[:,:,i] #+ self.lambad*np.eye(self.dim_x)
             Q_ux =  fu[:,:,i].T @ V_xx @ fx[:,:,i]+L_ux[:,:,i] # L_uxis 0
             Q_uu = L_uu[:,:,i] + fu[:,:,i].T @ V_xx @ fu[:,:,i] + self.lambad*np.eye(self.dim_u)
-            
-            k_open_loop[:,i] = -np.linalg.lstsq(Q_uu, Q_u, rcond=None)[0]            
-            K_closed_loop[:, :, i] = -np.linalg.lstsq(Q_uu, Q_ux, rcond=None)[0]
+            Q_uu_inv = np.linalg.inv(Q_uu)
+            k_open_loop[:,i] = -Q_uu_inv@Q_u
+            K_closed_loop[:, :, i] = -Q_uu_inv@Q_ux
+            # k_open_loop[:,i] = -np.linalg.lstsq(Q_uu, Q_u, rcond=None)[0]            
+            # K_closed_loop[:, :, i] = -np.linalg.lstsq(Q_uu, Q_ux, rcond=None)[0]
 
             # Update value function derivative for the previous time step
             V_x = Q_x - K_closed_loop[:,:,i].T @ Q_uu @ k_open_loop[:,i]
@@ -76,7 +79,7 @@ class iLQR():
         return K_closed_loop, k_open_loop
 
     def solve(self, cur_state, controls = None, debug = False):
-        self.lambad = 50
+        self.lambad = 100
 
         time0 = time.time()
 
@@ -121,7 +124,6 @@ class iLQR():
                 if J_new<=J:
                     if np.abs((J - J_new) / J) < self.tol:
                         converged = True   
-                    #print("step ", i, "reduce the cost to ", J_new)
                     J = J_new
                     states = X_new
                     controls = U_new
