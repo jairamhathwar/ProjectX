@@ -32,7 +32,8 @@ class Cost:
             states: 4xN array of planned trajectory
             controls: 2xN array of planned control
             closest_pt: 2xN array of each state's closest point [x,y] on the track
-            slope: 
+            slope: 1xN array of track's slopes (rad) at closest points
+            theta: 1xN array of the progress at each state
         '''
         
         transform = np.array([[np.sin(slope), -np.cos(slope), self.zeros, self.zeros], 
@@ -59,18 +60,27 @@ class Cost:
         
     def get_derivatives(self, nominal_states, nominal_controls, closest_pt, slope):
         '''
-        nominal_states: [d=4xN] array
+        Calculate Jacobian and Hessian of the cost function
+            states: 4xN array of planned trajectory
+            controls: 2xN array of planned control
+            closest_pt: 2xN array of each state's closest point [x,y] on the track
+            slope: 1xN array of track's slopes (rad) at closest points
+            theta: 1xN array of the progress at each state
         '''
         c_x_lat, c_xx_lat, c_u_lat, c_uu_lat, c_ux = \
             self.soft_constraints.lat_accel_bound_derivative(nominal_states, nominal_controls)
+        
         c_x_rd, c_xx_rd = self.soft_constraints.road_boundary_derivate(nominal_states, closest_pt, slope)
+        
         c_x_vel, c_xx_vel = self.soft_constraints.velocity_bound_derivate(nominal_states)
+        
         c_x_cost, c_xx_cost = self._get_cost_state_derivative(nominal_states, closest_pt, slope)
+        
+        c_u_cost, c_uu_cost = self._get_cost_control_derivative(nominal_controls)
         
         c_x = c_x_rd+c_x_vel+c_x_cost+ c_x_lat
         c_xx = c_xx_rd+c_xx_vel+c_xx_cost + c_xx_lat
         
-        c_u_cost, c_uu_cost = self._get_cost_control_derivative(nominal_controls)
         c_u = c_u_cost+ c_u_lat
         c_uu = c_uu_cost+c_uu_lat
         
