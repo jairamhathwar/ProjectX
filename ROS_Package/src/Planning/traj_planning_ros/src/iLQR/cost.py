@@ -1,10 +1,10 @@
 import numpy as np
 from constraints import Constraints
+
 class Cost:
-    def __init__(self, params, ref_path):
-        self.soft_constraints = Constraints(params, ref_path)
-        self.ref_path = ref_path
-              
+    def __init__(self, params):
+        self.soft_constraints = Constraints(params)
+                      
         # load parameters
         self.T = params['T'] # Planning Time Horizon
         self.N = params['N'] # number of planning steps
@@ -58,49 +58,46 @@ class Cost:
 
         return J
         
-    def get_derivatives(self, nominal_states, nominal_controls, closest_pt, slope):
+    def get_derivatives(self, states, controls, closest_pt, slope):
         '''
         Calculate Jacobian and Hessian of the cost function
             states: 4xN array of planned trajectory
             controls: 2xN array of planned control
             closest_pt: 2xN array of each state's closest point [x,y] on the track
             slope: 1xN array of track's slopes (rad) at closest points
-            theta: 1xN array of the progress at each state
         '''
-        c_x_lat, c_xx_lat, c_u_lat, c_uu_lat, c_ux = \
-            self.soft_constraints.lat_accel_bound_derivative(nominal_states, nominal_controls)
+        c_x_cons, c_xx_cons, c_u_cons, c_uu_cons, c_ux_cons = \
+            self.soft_constraints.get_derivatives( states, controls, closest_pt, slope)
         
-        c_x_rd, c_xx_rd = self.soft_constraints.road_boundary_derivate(nominal_states, closest_pt, slope)
+        c_x_cost, c_xx_cost = self._get_cost_state_derivative(states, closest_pt, slope)
         
-        c_x_vel, c_xx_vel = self.soft_constraints.velocity_bound_derivate(nominal_states)
+        c_u_cost, c_uu_cost = self._get_cost_control_derivative(controls)
         
-        c_x_cost, c_xx_cost = self._get_cost_state_derivative(nominal_states, closest_pt, slope)
+        q = c_x_cons+c_x_cost
+        Q = c_xx_cons+c_xx_cost
         
-        c_u_cost, c_uu_cost = self._get_cost_control_derivative(nominal_controls)
-        
-        c_x = c_x_rd+c_x_vel+c_x_cost+ c_x_lat
-        c_xx = c_xx_rd+c_xx_vel+c_xx_cost + c_xx_lat
-        
-        c_u = c_u_cost+ c_u_lat
-        c_uu = c_uu_cost+c_uu_lat
-        
-        return c_x, c_xx, c_u, c_uu, c_ux
-    
-    def _get_cost_state_derivative(self, nominal_states, closest_pt, slope):
-        '''
-        nominal_states: [d=4xN] array
-        '''
-        #closest_pt, slope = self.ref_path.get_closest_pts(nominal_states[:2,:])
+        r = c_u_cost+ c_u_cons
+        R = c_uu_cost+c_uu_cons
 
+        S = c_ux_cons
+        
+        return q, Q, r, R, S
+    
+    def _get_cost_state_derivative(self, states, closest_pt, slope):
+        '''
+        Calculate Jacobian and Hessian of the cost function with respect to state
+            states: 4xN array of planned trajectory
+            closest_pt: 2xN array of each state's closest point [x,y] on the track
+            slope: 1xN array of track's slopes (rad) at closest points
+        '''
         transform = np.array([[np.sin(slope), -np.cos(slope), self.zeros, self.zeros], 
                         [self.zeros, self.zeros, self.ones, self.zeros]])
-        ref_states = np.zeros_like(nominal_states)
+        ref_states = np.zeros_like(states)
         ref_states[:2, :] = closest_pt
         ref_states[2, :] = self.v_max
         
-        error = nominal_states - ref_states
+        error = states - ref_states
         Q_trans = np.einsum('abn, bcn->acn', np.einsum('dan, ab -> dbn', transform.transpose(1,0,2), self.W_state), transform)
-        
         
         # shape [4xN]
         c_x = np.einsum('abn, bn->an', Q_trans, error)
@@ -111,11 +108,11 @@ class Cost:
         
         return c_x, c_xx
     
-    def _get_cost_control_derivative(self, nominal_controls):
+    def _get_cost_control_derivative(self, controls):
         '''
-        nominal_control: [d=2xN] array
+        Calculate Jacobian and Hessian of the cost function w.r.t the control
+            controls: 2xN array of planned control
         '''
-        c_u = np.einsum('ab, bn->an', self.W_control, nominal_controls)
-        
+        c_u = np.einsum('ab, bn->an', self.W_control, controls)        
         c_uu = np.repeat(self.W_control[:,:,np.newaxis], self.N, axis=2)        
         return c_u, c_uu

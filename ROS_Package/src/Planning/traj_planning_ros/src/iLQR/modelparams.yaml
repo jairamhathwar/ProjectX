@@ -42,6 +42,8 @@ a_max: 3.5
 alat_max: 4.0
 alat_min: -4.0
 
+track_width: 0.4
+
 # weights for the cost
 w_vel: 2
 w_contour:  30
@@ -50,7 +52,6 @@ w_accel: 0.5
 w_delta: 0.5
 
 # parameter for soft constraints
-
 q1_v: 0.4
 q2_v: 2
 
