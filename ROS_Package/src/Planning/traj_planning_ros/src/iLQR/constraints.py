@@ -50,7 +50,6 @@ class Constraints:
         
         L_vel = self.q1_v*np.exp(self.q2_v*(states[2,:] - self.v_max)) \
                         + self.q1_v*np.exp(-states[2,:]*self.q2_v)
-        #print(np.exp(states[2,:] - self.v_max))
 
         # loss due to control
         # L_steer = self.q1_delta*np.exp(self.q2_delta*(controls[0,:] - self.delta_max)) \
@@ -171,8 +170,6 @@ class Constraints:
 
         L_ux[1,2,:] = self.q2_lat**2*(b_ub+b_lb)*da_dx*da_du + self.q2_lat*(b_ub-b_lb)*da_dux
         return L_x, L_xx, L_u, L_uu, L_ux
-
-
 
     def barrier_function(self, q1, q2, c, c_dot):
         '''

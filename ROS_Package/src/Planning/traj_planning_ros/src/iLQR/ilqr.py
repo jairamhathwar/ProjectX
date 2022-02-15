@@ -38,13 +38,13 @@ class iLQR():
             K = K_closed_loop[:,:,i]
             k = k_open_loop[:,i]
             u = nominal_controls[:,i]+alpha*k+ K @ (X[:, i] - nominal_states[:, i])
-            X[:,i+1], U[:,i] = self.dynamics.forward_step(X[:,i], u, step=1)
+            X[:,i+1], U[:,i] = self.dynamics.forward_step(X[:,i], u)
         
         closest_pt, slope, theta = self.ref_path.get_closest_pts(X[:2,:])
         
         J = self.cost.get_cost(X, U, closest_pt, slope, theta)
         
-        return X, U, J, closest_pt, slope
+        return X, U, J, closest_pt, slope, theta
  
  
         
@@ -90,6 +90,7 @@ class iLQR():
 
 
     def solve(self, cur_state, controls = None):
+        status = 0
         self.lambad = 100
 
         time0 = time.time()
@@ -100,7 +101,7 @@ class iLQR():
         states[:,0] = cur_state
 
         for i in range(1,self.N):
-            states[:,i],_ = self.dynamics.forward_step(states[:,i-1], controls[:,i-1], step = 1)
+            states[:,i],_ = self.dynamics.forward_step(states[:,i-1], controls[:,i-1])
         closest_pt, slope, theta = self.ref_path.get_closest_pts(states[:2,:])
 
         J = self.cost.get_cost(states, controls,  closest_pt, slope, theta)
@@ -113,7 +114,7 @@ class iLQR():
 
             updated = False
             for alpha in self.alphas :
-                X_new, U_new, J_new, closest_pt_new, slope_new = self.forward_pass(states, controls, K_closed_loop, k_open_loop, alpha)
+                X_new, U_new, J_new, closest_pt_new, slope_new, theta_new = self.forward_pass(states, controls, K_closed_loop, k_open_loop, alpha)
                 if J_new<=J:
                     if np.abs((J - J_new) / J) < self.tol:
                         converged = True   
@@ -122,6 +123,7 @@ class iLQR():
                     controls = U_new
                     closest_pt = closest_pt_new
                     slope = slope_new
+                    theta = theta_new
                     updated = True
                     break
             if updated:
@@ -129,18 +131,18 @@ class iLQR():
             else:
                 self.lambad *= 2
                 if abs(expected_cost_red_prev - expected_cost_red)<1e-6:
-                    print("early exit")
+                    status = 2
+                    # print("early exit")
                     break
                 else:
                     expected_cost_red_prev = expected_cost_red
             self.lambad = min(max(self.lambad_min, self.lambad), self.lambad_max)
             
             if converged:
-                print("converged")
+                status = 1
                 break
-            
-        print("exit at step", i, "with final cost ", J, 'in ', time.time()-time0, 'sec')
-        return states, controls
+        t_process = time.time()-time0
+        return states, controls, t_process, status, theta
 
 
 

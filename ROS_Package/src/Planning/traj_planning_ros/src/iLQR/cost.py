@@ -1,34 +1,39 @@
 import numpy as np
 from constraints import Constraints
-
-# state: [x,y,v,psi]
 class Cost:
     def __init__(self, params, ref_path):
         self.soft_constraints = Constraints(params, ref_path)
         self.ref_path = ref_path
-        
-        self.T = params['T']
-        self.N = params['N']
-        
-        self.Q_v = params['Q_v']
-        self.Q_c = params['Q_c']
-        self.Q_theta = params['Q_theta']
-                
-        self.R_accel = params['R_accel']
-        self.R_delta = params['R_delta']
+              
+        # load parameters
+        self.T = params['T'] # Planning Time Horizon
+        self.N = params['N'] # number of planning steps
+        self.dt = self.T/(self.N-1) # time step for each planning step
+        self.v_max = params['v_max'] # max velocity
 
-        self.v_max = params['v_max']
-                
-        self.Q = np.array([[self.Q_c, 0],
-                            [0, self.Q_v]])
+        # cost 
+        self.w_vel = params['w_vel'] 
+        self.w_contour = params['w_contour']
+        self.w_theta = params['w_theta']
+        self.w_accel = params['w_accel']
+        self.w_delta = params['w_delta']
         
-        self.R = np.array([[self.R_accel, 0], [0, self.R_delta]])
+        self.W_state = np.array([[self.w_contour, 0],
+                            [0, self.w_vel]])
+        self.W_control = np.array([[self.w_accel, 0], [0, self.w_delta]])
         
-        # useful parameters
+        # useful constants
         self.zeros = np.zeros((self.N))
         self.ones = np.ones((self.N))
 
     def get_cost(self, states, controls, closest_pt, slope, theta):
+        '''
+        Given planned states and controls, calculate the cost
+            states: 4xN array of planned trajectory
+            controls: 2xN array of planned control
+            closest_pt: 2xN array of each state's closest point [x,y] on the track
+            slope: 
+        '''
         
         transform = np.array([[np.sin(slope), -np.cos(slope), self.zeros, self.zeros], 
                                 [self.zeros, self.zeros, self.ones, self.zeros]])
@@ -37,20 +42,18 @@ class Cost:
         ref_states[2, :] = self.v_max
         
         error = states - ref_states
-        # print(states[:2, :], closest_pt )
-        Q_trans = np.einsum('abn, bcn->acn', np.einsum('dan, ab -> dbn', transform.transpose(1,0,2), self.Q), transform)
+        Q_trans = np.einsum('abn, bcn->acn', np.einsum('dan, ab -> dbn', transform.transpose(1,0,2), self.W_state), transform)
         
-        L_state = np.einsum('an, an->n', error, np.einsum('abn, bn->an', Q_trans, error))
-        # print('state', L_state)
-        L_progress = -self.Q_theta*(theta[-1] - theta[0])
+        c_state = np.einsum('an, an->n', error, np.einsum('abn, bn->an', Q_trans, error))
+        c_progress = -self.w_theta*np.sum(theta) #(theta[-1] - theta[0])
 
-        L_control = np.einsum('an, an->n', controls, np.einsum('ab, bn->an', self.R, controls))
+        c_control = np.einsum('an, an->n', controls, np.einsum('ab, bn->an', self.W_control, controls))
 
-        L_control[-1] = 0
+        c_control[-1] = 0
         
-        L_constraint = self.soft_constraints.get_cost(states, controls, closest_pt, slope)
+        c_constraint = self.soft_constraints.get_cost(states, controls, closest_pt, slope)
 
-        J  = np.sum(L_state + L_constraint + L_control) + L_progress
+        J  = np.sum(c_state + c_constraint + c_control) + c_progress
 
         return J
         
@@ -58,23 +61,20 @@ class Cost:
         '''
         nominal_states: [d=4xN] array
         '''
-        L_x_lat, L_xx_lat, L_u_lat, L_uu_lat, L_ux = \
+        c_x_lat, c_xx_lat, c_u_lat, c_uu_lat, c_ux = \
             self.soft_constraints.lat_accel_bound_derivative(nominal_states, nominal_controls)
-        L_x_rd, L_xx_rd = self.soft_constraints.road_boundary_derivate(nominal_states, closest_pt, slope)
-        L_x_vel, L_xx_vel = self.soft_constraints.velocity_bound_derivate(nominal_states)
-        L_x_cost, L_xx_csot = self._get_cost_state_derivative(nominal_states, closest_pt, slope)
+        c_x_rd, c_xx_rd = self.soft_constraints.road_boundary_derivate(nominal_states, closest_pt, slope)
+        c_x_vel, c_xx_vel = self.soft_constraints.velocity_bound_derivate(nominal_states)
+        c_x_cost, c_xx_cost = self._get_cost_state_derivative(nominal_states, closest_pt, slope)
         
-        L_x = L_x_rd+L_x_vel+L_x_cost+ L_x_lat
-        L_xx = L_xx_rd+L_xx_vel+L_xx_csot + L_xx_lat
+        c_x = c_x_rd+c_x_vel+c_x_cost+ c_x_lat
+        c_xx = c_xx_rd+c_xx_vel+c_xx_cost + c_xx_lat
         
-        # L_u_steer, L_uu_steer = self.soft_constraints.steering_bound_derivative(nominal_controls)
-        # L_u_accel, L_uu_accel = self.soft_constraints.accel_bound_derivative(nominal_controls)
-        #L_u_dtheta, L_uu_dtheta = self.soft_constraints.dtheta_bound_derivate(nominal_controls)
-        L_u_cost, L_uu_cost = self._get_cost_control_derivative(nominal_controls)
-        L_u = L_u_cost+ L_u_lat # +L_u_steer+L_u_accel
-        L_uu = L_uu_cost+L_uu_lat # +L_uu_steer+L_uu_accel
+        c_u_cost, c_uu_cost = self._get_cost_control_derivative(nominal_controls)
+        c_u = c_u_cost+ c_u_lat
+        c_uu = c_uu_cost+c_uu_lat
         
-        return L_x, L_xx, L_u, L_uu, L_ux
+        return c_x, c_xx, c_u, c_uu, c_ux
     
     def _get_cost_state_derivative(self, nominal_states, closest_pt, slope):
         '''
@@ -89,37 +89,23 @@ class Cost:
         ref_states[2, :] = self.v_max
         
         error = nominal_states - ref_states
-        Q_trans = np.einsum('abn, bcn->acn', np.einsum('dan, ab -> dbn', transform.transpose(1,0,2), self.Q), transform)
+        Q_trans = np.einsum('abn, bcn->acn', np.einsum('dan, ab -> dbn', transform.transpose(1,0,2), self.W_state), transform)
         
         
         # shape [4xN]
-        L_x = np.einsum('abn, bn->an', Q_trans, error)
+        c_x = np.einsum('abn, bn->an', Q_trans, error)
 
-        L_x_progress = -self.Q_theta*np.array([np.cos(slope), np.sin(slope), self.zeros, self.zeros])
-        L_x = L_x + L_x_progress
-        L_xx = Q_trans
+        c_x_progress = -self.w_theta*np.array([np.cos(slope), np.sin(slope), self.zeros, self.zeros])
+        c_x = c_x + c_x_progress
+        c_xx = Q_trans
         
-        # L_x = L_x  + L_x_vel+ L_x_rd
-        # L_xx = L_xx   + L_xx_vel+L_xx_rd
-
-        return L_x, L_xx
+        return c_x, c_xx
     
     def _get_cost_control_derivative(self, nominal_controls):
         '''
         nominal_control: [d=2xN] array
         '''
-        L_u = np.einsum('ab, bn->an', self.R, nominal_controls)
+        c_u = np.einsum('ab, bn->an', self.W_control, nominal_controls)
         
-        L_uu = np.repeat(self.R[:,:,np.newaxis], self.N, axis=2)
-
-        
-        # L_u = L_u + L_u_steer+L_u_accel
-        # L_uu = L_uu + L_uu_steer+L_uu_accel
-        
-        return L_u, L_uu
-        
-    
-    
-        
-    
-        
+        c_uu = np.repeat(self.W_control[:,:,np.newaxis], self.N, axis=2)        
+        return c_u, c_uu

@@ -3,6 +3,7 @@
 #Alexander Liniger, Alexander Domahidi and Manfred Morari
 # https://onlinelibrary.wiley.com/doi/abs/10.1002/oca.2123
 m: 2.99 #[kg]
+L: 0.257 #[m]
 l_f: 0.15 #[m]
 l_r: 0.107 #[m]
 Iz:  0.1 #[kg*m^3]
@@ -42,18 +43,13 @@ alat_max: 4.0
 alat_min: -4.0
 
 # weights for the cost
-Q_v: 2
-Q_c:  15
-Q_theta: 1
-R_accel: 1
-R_delta: 1
+w_vel: 2
+w_contour:  30
+w_theta: 1
+w_accel: 0.5
+w_delta: 0.5
 
 # parameter for soft constraints
-# q1_accel: 0 # 0.1 #
-# q2_accel: 1
-
-# q1_delta: 0 #0.1 #0.1
-# q2_delta: 1
 
 q1_v: 0.4
 q2_v: 2
