@@ -1,0 +1,5 @@
+- [_] Clean the reference code to be usable with our Planning alg
+- [_] Wrap controller with ROS
+    - [_] Check ROS node from Planning and traj_msgs
+    - [_] Check ROS node from Control (Maestro ROS wrapper)
+- [_] Test on real car
