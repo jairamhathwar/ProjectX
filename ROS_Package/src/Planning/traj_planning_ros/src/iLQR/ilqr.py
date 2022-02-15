@@ -16,7 +16,7 @@ class iLQR():
 
         self.steps = 30
 
-        self.tol = 1e-3
+        self.tol = 1e-4
         self.lambad = 100
         self.lambad_max = 1000
         self.lambad_min = 1e-3
@@ -28,8 +28,6 @@ class iLQR():
         self.dim_u = self.dynamics.dim_u
 
         self.cost = Cost(params, ref_path)
-   
-   
         
     def forward_pass(self, nominal_states, nominal_controls, K_closed_loop, k_open_loop, alpha):
         X = np.zeros_like(nominal_states)
@@ -130,7 +128,7 @@ class iLQR():
                 self.lambad *= 0.7
             else:
                 self.lambad *= 2
-                if abs(expected_cost_red_prev - expected_cost_red)<1e-3:
+                if abs(expected_cost_red_prev - expected_cost_red)<1e-6:
                     print("early exit")
                     break
                 else:

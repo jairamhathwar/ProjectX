@@ -27,6 +27,7 @@ class Track:
 
         # variables for plotting
         self.track_bound = None
+        self.track_center = None
     
     
 
@@ -62,27 +63,57 @@ class Track:
         Points have [2xn] shape
         '''
         s, _ = self.center_line.projectPoint(points.T, eps=1e-3)
+
         closest_pt, slope = self._interp_s(s)
         return closest_pt, slope, s*self.length
         
     def project_point(self, point):
         s, _ = self.center_line.projectPoint(point,eps=1e-3)
         return s*self.length
-        
 
     def plot_track(self):
+        N = 50000
         if self.track_bound is None:
-            theta_sample = np.linspace(0,1,200, endpoint=False)*self.length
+            theta_sample = np.linspace(0,1,N, endpoint=False)*self.length
             interp_pt, slope = self.interp(theta_sample)
             
-            self.track_bound = np.zeros((4,200))
+            if self.loop:
+                self.track_bound = np.zeros((4,N+1))
+            else:
+                self.track_bound = np.zeros((4,N))
 
-            self.track_bound[0,:] = interp_pt[0,:] - np.sin(slope)*self.width_left
-            self.track_bound[1,:] = interp_pt[1,:] + np.cos(slope)*self.width_left
+            self.track_bound[0,:N] = interp_pt[0,:] - np.sin(slope)*self.width_left
+            self.track_bound[1,:N] = interp_pt[1,:] + np.cos(slope)*self.width_left
 
-            self.track_bound[2,:] = interp_pt[0,:] + np.sin(slope)*self.width_right
-            self.track_bound[3,:] = interp_pt[1,:] - np.cos(slope)*self.width_right
-        
+            self.track_bound[2,:N] = interp_pt[0,:] + np.sin(slope)*self.width_right
+            self.track_bound[3,:N] = interp_pt[1,:] - np.cos(slope)*self.width_right
+            
+            if self.loop:
+                self.track_bound[:,-1] = self.track_bound[:,0]           
+
+        plt.plot(self.track_bound[0,:], self.track_bound[1,:], 'k-')
+        plt.plot(self.track_bound[2,:], self.track_bound[3,:], 'k-')
+
+    def plot_track_center(self):
+        N = 50000
+        if self.track_center is None:
+            theta_sample = np.linspace(0,1,N, endpoint=False)*self.length
+            interp_pt, slope = self.interp(theta_sample)
+            
+            if self.loop:
+                self.track_bound = np.zeros((4,N+1))
+            else:
+                self.track_bound = np.zeros((4,N))
+
+            self.track_bound[0,:N] = interp_pt[0,:] - np.sin(slope)*(self.width_left+0.1)
+            self.track_bound[1,:N] = interp_pt[1,:] + np.cos(slope)*(self.width_left+0.1)
+
+            self.track_bound[2,:N] = interp_pt[0,:] + np.sin(slope)*(self.width_right+0.1)
+            self.track_bound[3,:N] = interp_pt[1,:] - np.cos(slope)*(self.width_right+0.1)
+            
+            if self.loop:
+                self.track_bound[:,-1] = self.track_bound[:,0]           
+
         plt.plot(self.track_bound[0,:], self.track_bound[1,:], 'k-')
         plt.plot(self.track_bound[2,:], self.track_bound[3,:], 'k-')
         

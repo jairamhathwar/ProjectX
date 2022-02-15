@@ -43,7 +43,7 @@ alat_min: -4.0
 
 # weights for the cost
 Q_v: 2
-Q_c:  20
+Q_c:  15
 Q_theta: 1
 R_accel: 1
 R_delta: 1
