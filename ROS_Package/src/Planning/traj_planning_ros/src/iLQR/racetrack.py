@@ -1,12 +1,13 @@
-import csv
 import numpy as np
 from track import  Track
 from matplotlib import pyplot as plt
 from matplotlib import cm
 from ilqr import iLQR
 import yaml
+import csv
 
-filename = 'racetrack/Catalunya.csv'
+
+filename = 'racetrack/Nuerburgring.csv'
 
 params_file = 'modelparams.yaml'
 with open(params_file) as file:
@@ -70,6 +71,7 @@ solver = iLQR(track, params)
 itr_max = 500
 state_hist = np.zeros((4,itr_max+1))
 control_hist = np.zeros((2,itr_max))
+plan_hist = np.zeros((4, N, itr_max))
 
 pos0, psi0 = track.interp([0])
 x_cur =np.array([pos0[0], pos0[1], 0, psi0[0]])
@@ -77,13 +79,15 @@ x_cur =np.array([pos0[0], pos0[1], 0, psi0[0]])
 #state_hist[:,0] = x_cur
 init_control = np.zeros((2,11))
 
-plt.figure(figsize=(15, 15))
+# 
 t_total = 0
 
 for i in range(itr_max):
     
     states, controls, t_process, status, theta \
             = solver.solve(x_cur, controls = init_control) 
+    
+    plan_hist[:,:, i] = states
     
     state_hist[:,i] = states[:,0]
     control_hist[:,i] = controls[:,0]
@@ -92,27 +96,33 @@ for i in range(itr_max):
     x_cur = simulate_kin(x_cur, controls[:,0])
     t_total += t_process
    
-    plt.clf()
-    track.plot_track()
-    plt.plot(states[0,:], states[1,:], linewidth= 4)
-    plt.plot(x_cur[0], x_cur[1], '*', markersize=20)
-    sc = plt.scatter(state_hist[0, :i+1], state_hist[1,:i+1], s = 80, 
-                c=state_hist[2,:i+1], cmap=cm.jet, 
-                vmin=0, vmax=params['v_max'], edgecolor='none', marker='o')
-    cbar = plt.colorbar(sc)
-    cbar.set_label(r"velocity [$m/s$]", size=20)
-    plt.axis('equal')
-    plt.pause(0.01)
+    
     if theta[1]<theta[0]:
         break
 
 print(t_total, i)
 
 # show results of the run
-plt.close()
+# 
 
+plt.figure(figsize=(15, 15))
 state_hist = state_hist[:, :i+2]
 control_hist = control_hist[:,:i+1]
+plan_hist = plan_hist[:,:, :i+1]
+
+for j in range(i+1):
+    plt.clf()
+    track.plot_track()
+    plt.plot(plan_hist[0,:, j], plan_hist[1,:, j], linewidth= 4)
+    #plt.plot(state_hist[0,j], state_hist[1,j], '*', markersize=20)
+    sc = plt.scatter(state_hist[0, :j+1], state_hist[1,:j+1], s = 80, 
+                c=state_hist[2,:j+1], cmap=cm.jet, 
+                vmin=0, vmax=params['v_max'], edgecolor='none', marker='o')
+    cbar = plt.colorbar(sc)
+    cbar.set_label(r"velocity [$m/s$]", size=20)
+    plt.axis('equal')
+    plt.pause(0.01)
+plt.close()
 
 # raceline
 plt.figure(figsize=(15, 15))

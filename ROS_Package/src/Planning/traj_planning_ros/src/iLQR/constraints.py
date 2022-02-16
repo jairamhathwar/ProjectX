@@ -18,6 +18,7 @@ class Constraints:
         self.v_max = params['v_max'] # max velocity
         self.alat_max = params['alat_max'] # max lateral accel
         self.alat_min = params['alat_min'] # min lateral accel
+        self.track_width = params['track_width']
 
         # parameter for barrier functions
         self.q1_v = params['q1_v']
@@ -40,8 +41,8 @@ class Constraints:
         dy = states[1,:] - closest_pt[1,:]
         d = np.sin(slope)*dx - np.cos(slope)*dy
 
-        c_boundary = self.q1_road*np.exp(self.q2_road*(d-self.track.width_right)) \
-                        + self.q1_road*np.exp(self.q2_road*(self.track.width_left-d))
+        c_boundary = self.q1_road*np.exp(self.q2_road*(d-self.track_width)) \
+                        + self.q1_road*np.exp(self.q2_road*(self.track_width-d))
         
         c_vel = self.q1_v*np.exp(self.q2_v*(states[2,:] - self.v_max)) \
                         + self.q1_v*np.exp(-states[2,:]*self.q2_v)
@@ -93,11 +94,11 @@ class Constraints:
         
         error = states - ref_states
 
-        c = np.einsum('an,an->n', transform, error) - self.track.width_right
+        c = np.einsum('an,an->n', transform, error) - self.track_width
         c_x_u, c_xx_u = self.barrier_function(self.q1_road, self.q2_road, c, transform)
 
         # constraint due to left road boundary. larger than -left_width
-        c = - self.track.width_left - np.einsum('an,an->n', transform, error) 
+        c = - self.track_width - np.einsum('an,an->n', transform, error) 
         c_x_l, c_xx_l = self.barrier_function(self.q1_road, self.q2_road, c, -transform)
 
         return c_x_u+c_x_l, c_xx_u+c_xx_l

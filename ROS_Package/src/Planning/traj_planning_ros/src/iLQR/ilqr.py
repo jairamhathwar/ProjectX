@@ -27,7 +27,7 @@ class iLQR():
         self.dim_x = self.dynamics.dim_x
         self.dim_u = self.dynamics.dim_u
 
-        self.cost = Cost(params, ref_path)
+        self.cost = Cost(params)
         
     def forward_pass(self, nominal_states, nominal_controls, K_closed_loop, k_open_loop, alpha):
         X = np.zeros_like(nominal_states)
