@@ -1,0 +1,5 @@
+<launch>
+    <include file="$(find rc_control)/launch/rc_control_node.launch"/>
+    <include file="$(find zed_wrapper)/launch/zed2.launch"/>
+    
+</launch>
