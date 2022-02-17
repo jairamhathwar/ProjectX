@@ -16,23 +16,21 @@ class StanleyController(object):
     def __init__(self, k=5.0):
         self.k = k
 
-    def __call__(self, state, cx, cy, cyaw, last_target_idx):
+    def __call__(self, state, course, last_target_idx):
         """
         Stanley steering control.
         :param state: (State object)
-        :param cx: ([float])
-        :param cy: ([float])
-        :param cyaw: ([float])
+        :param course: (Course object)
         :param last_target_idx: (int)
         :return: (float, int)
         """
-        current_target_idx, error_front_axle = calc_target_index(state, cx, cy)
+        current_target_idx, error_front_axle = course.calculate_target_index(state)
 
         if last_target_idx >= current_target_idx:
             current_target_idx = last_target_idx
 
         # theta_e corrects the heading error
-        theta_e = normalize_angle(cyaw[current_target_idx] - state.yaw)
+        theta_e = normalize_angle(course.yaw[current_target_idx] - state.yaw)
         # theta_d corrects the cross track error
         theta_d = np.arctan2(self.k * error_front_axle, state.v)
         # Steering control

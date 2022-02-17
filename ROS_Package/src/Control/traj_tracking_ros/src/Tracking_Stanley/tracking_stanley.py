@@ -1,4 +1,4 @@
-from ROS_Package.src.Control.traj_tracking_ros.src.Tracking_Stanley.stanley_controller import StanleyTracker
+from stanley_controller import StanleyTracker
 import rospy
 from traj_msgs.msg import Trajectory
 from geometry_msgs.msg import PoseStamped
@@ -12,11 +12,16 @@ import numpy as np
 
 from realtime_buffer import RealtimeBuffer
 from copy import copy, deepcopy
-from scipy.interpolate import CubicSpline
 import threading
 from spatialmath.base import *
 
-class RefTraj:
+import cubic_spline_planner
+
+class Course(object):
+    """
+    Creata lists of x, y, psi, vel using  fitting 
+    based on the x, y, psi, vel of the Trajectory message
+    """
     def __init__(self, msg: Trajectory):
         '''
         Decode the ros message and apply cubic interpolation 
@@ -25,27 +30,31 @@ class RefTraj:
         self.dt = msg.dt
         self.step = msg.step
 
-        # discrete time step
-        self.t = np.linspace(0, self.step * self.dt, self.step,
-                             endpoint=False)  # unit of second
+        # create course data
+        self.x, self.y, self.yaw, k, s \
+            = cubic_spline_planner.calc_spline_course(msg.x, msg.y, ds=self.dt)
+    
+    def calculate_target_index(self, state):
+        """
+        Input state of the car and calculate the index of the next point in the course
+        """
+        # Calc front axle position
+        fx = state.x + state.L * np.cos(state.yaw)
+        fy = state.y + state.L * np.sin(state.yaw)
 
-        self.x = CubicSpline(self.t, np.array(msg.x))
-        self.y = CubicSpline(self.t, np.array(msg.y))
+        # Search nearest point index
+        dx = [fx - icx for icx in self.x]
+        dy = [fy - icy for icy in self.y]
+        d = np.hypot(dx, dy)
+        target_idx = np.argmin(d)
 
-        self.psi = CubicSpline(self.t, np.array(msg.psi))
-        self.vel = CubicSpline(self.t, np.array(msg.vel))
+        # Project RMS error onto front axle vector
+        front_axle_vec = [-np.cos(state.yaw + np.pi / 2),
+                        -np.sin(state.yaw + np.pi / 2)]
+        error_front_axle = np.dot([dx[target_idx], dy[target_idx]], front_axle_vec)
 
-    def interp_traj(self, t_1, dt, n):
-        t_interp = np.arange(n) * dt + (t_1.to_sec() - self.t_0)
-        x_interp = self.x(t_interp)
-        y_interp = self.y(t_interp)
-        psi_interp = self.psi(t_interp)
-        vel_interp = self.vel(t_interp)
-
-        x_ref = np.stack([x_interp, y_interp, psi_interp, vel_interp])
-
-        return t_interp, x_ref
-
+        return target_idx, error_front_axle
+    
 class Tracking_Stanley(object):
     def __init__(self,
                  pose_topic='/zed2/zed_node/pose',
@@ -93,8 +102,8 @@ class Tracking_Stanley(object):
         """
         Subscriber callback function of the reference trajectory
         """
-        ref_traj = RefTraj(msg)
-        self.traj_buffer.writeFromNonRT(ref_traj)
+        course = Course(msg)
+        self.trajectory_buffer.writeFromNonRT(course)
 
     def pose_sub_callback(self, msg: PoseStamped):
         """
