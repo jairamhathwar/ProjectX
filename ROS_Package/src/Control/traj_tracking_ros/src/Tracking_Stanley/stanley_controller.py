@@ -46,3 +46,29 @@ class PIDController(object):
 
     def __call__(self, target, current):
         return self.Kp * (target - current)
+
+
+class StanleyTracker(object):
+    def __init__(self, state_0, course):
+        """
+        Stanley tracker
+        :param state_0: (CarState)
+        :param course: (RefTraj)
+        """
+        self.stanley_controller = StanleyController()
+        self.pid_controller = PIDController()
+        self.course = course
+        self.target_idx, _ = calc_target_index(state_0, )
+    
+    def __call__(self, target_velocity, actual_state):
+        """
+        Stanley tracker
+        :param target_velocity: (float)
+        :param actual_state: (CarState)
+        """
+        # acceleration ai
+        ai = self.pid_controller(target_velocity, actual_state.v)
+        # steering di
+        di, target_idx = self.stanley_controller(
+            actual_state, trajectory.x, trajectory.y, trajectory.yaw, )
+        return ai, di

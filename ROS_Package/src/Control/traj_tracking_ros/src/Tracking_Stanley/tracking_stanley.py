@@ -1,3 +1,4 @@
+from ROS_Package.src.Control.traj_tracking_ros.src.Tracking_Stanley.stanley_controller import StanleyTracker
 import rospy
 from traj_msgs.msg import Trajectory
 from geometry_msgs.msg import PoseStamped
@@ -49,11 +50,13 @@ class Tracking_Stanley(object):
     def __init__(self,
                  pose_topic='/zed2/zed_node/pose',
                  ref_traj_topic='/planning/trajectory',
-                 controller_topic='/control/rc_control'
+                 controller_topic='/control/rc_control',
                  vicon_pose=False
-                )
+                ):
 
         self.vicon_pose = vicon_pose
+
+        self.stanley_tracker = StanleyTracker()
 
         # objects to schedule trajectory publishing
         self.traj_buffer = RealtimeBuffer()

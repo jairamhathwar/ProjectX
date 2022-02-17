@@ -24,6 +24,7 @@ def main():
     ax = [0.0, 100.0, 100.0, 50.0, 60.0]
     ay = [0.0, 0.0, -30.0, -20.0, 0.0]
 
+    # cx, cy, cyaw, ck, s: course information
     cx, cy, cyaw, ck, s = cubic_spline_planner.calc_spline_course(
         ax, ay, ds=0.1)
 
