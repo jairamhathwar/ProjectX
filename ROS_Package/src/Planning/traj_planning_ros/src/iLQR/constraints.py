@@ -17,7 +17,7 @@ class Constraints:
         self.v_min = params['v_min'] # min velocity
         self.v_max = params['v_max'] # max velocity
         self.alat_max = params['alat_max'] # max lateral accel
-        self.alat_min = params['alat_min'] # min lateral accel
+        self.alat_min = -params['alat_max'] # min lateral accel
         self.track_width = params['track_width']
 
         # parameter for barrier functions

@@ -4,17 +4,21 @@ from matplotlib import pyplot as plt
 from matplotlib import cm
 from ilqr import iLQR
 import yaml
+import pickle
 import csv
 
-
-filename = 'racetrack/Nuerburgring.csv'
-
-params_file = 'modelparams.yaml'
-with open(params_file) as file:
-    params = yaml.load(file, Loader= yaml.FullLoader)
+filename = 'racetrack/IMS.csv'
+params = {'L': 0.257, 'm': 2.99, 'track_width': 0.4,
+                'delta_min': -0.35, 'delta_max': 0.35,
+                'v_max': 4, 'v_min': 0, 'a_min': -3.5,
+                'a_max': 3.5, 'alat_max': 5, 'w_vel': 2,
+                'w_contour': 100, 'w_theta': 1, 'w_accel': 1,
+                'w_delta': 1, 'q1_v': 0.4, 'q2_v': 2,
+                'q1_road': 0.4, 'q2_road': 2, 'q1_lat': 0.4,
+                'q2_lat': 2, 'T': 1, 'N': 6, 'max_itr': 50}
     
 # Load parameters
-L = params['l_r']+params['l_f']
+L = params['L']
 delta_min = params['delta_min']
 delta_max = params['delta_max']
 a_min = params['a_min']
@@ -71,13 +75,13 @@ solver = iLQR(track, params)
 itr_max = 500
 state_hist = np.zeros((4,itr_max+1))
 control_hist = np.zeros((2,itr_max))
-plan_hist = np.zeros((4, N, itr_max))
+plan_hist = np.zeros((6, N, itr_max))
 
 pos0, psi0 = track.interp([0])
 x_cur =np.array([pos0[0], pos0[1], 0, psi0[0]])
 
 #state_hist[:,0] = x_cur
-init_control = np.zeros((2,11))
+init_control = np.zeros((2,N))
 
 # 
 t_total = 0
@@ -87,7 +91,8 @@ for i in range(itr_max):
     states, controls, t_process, status, theta \
             = solver.solve(x_cur, controls = init_control) 
     
-    plan_hist[:,:, i] = states
+    plan_hist[:4,:, i] = states
+    plan_hist[4:, :, i] = controls
     
     state_hist[:,i] = states[:,0]
     control_hist[:,i] = controls[:,0]
@@ -102,13 +107,16 @@ for i in range(itr_max):
 
 print(t_total, i)
 
-# show results of the run
-# 
+# # show results of the run
+# # 
 
 plt.figure(figsize=(15, 15))
 state_hist = state_hist[:, :i+2]
 control_hist = control_hist[:,:i+1]
 plan_hist = plan_hist[:,:, :i+1]
+
+pickle.dump([plan_hist], open("test.p", "wb"))
+
 
 for j in range(i+1):
     plt.clf()
@@ -124,30 +132,31 @@ for j in range(i+1):
     plt.pause(0.01)
 plt.close()
 
-# raceline
-plt.figure(figsize=(15, 15))
-track.plot_track()
-plt.plot(state_hist[0,:], state_hist[1,:], linewidth= 5)
-plt.title("Trajectory")
 
-# velocity
-plt.figure(figsize=(15, 15))
-track.plot_track()
-sc = plt.scatter(state_hist[0, :-1], state_hist[1,:-1], s = 80, 
-                c=state_hist[2,:-1], cmap=cm.jet, 
-                vmin=params['v_min'], vmax=params['v_max'], edgecolor='none', marker='o')
-cbar = plt.colorbar(sc)
-cbar.set_label(r"Velocity [$m/s$]", size=20)
+# # raceline
+# plt.figure(figsize=(15, 15))
+# track.plot_track()
+# plt.plot(state_hist[0,:], state_hist[1,:], linewidth= 5)
+# plt.title("Trajectory")
 
-# Longitudinal Accel
-plt.figure(figsize=(15, 15))
-track.plot_track()
-sc = plt.scatter(state_hist[0, :-1], state_hist[1,:-1], s = 80, 
-                c=control_hist[0,:], cmap=cm.jet, 
-                vmin=params['a_min'], vmax=params['a_max'], edgecolor='none', marker='o')
-cbar = plt.colorbar(sc)
-cbar.set_label(r"Longitudinal Accel [$m/s^2$]", size=20)
-plt.show()
+# # velocity
+# plt.figure(figsize=(15, 15))
+# track.plot_track()
+# sc = plt.scatter(state_hist[0, :-1], state_hist[1,:-1], s = 80, 
+#                 c=state_hist[2,:-1], cmap=cm.jet, 
+#                 vmin=params['v_min'], vmax=params['v_max'], edgecolor='none', marker='o')
+# cbar = plt.colorbar(sc)
+# cbar.set_label(r"Velocity [$m/s$]", size=20)
+
+# # Longitudinal Accel
+# plt.figure(figsize=(15, 15))
+# track.plot_track()
+# sc = plt.scatter(state_hist[0, :-1], state_hist[1,:-1], s = 80, 
+#                 c=control_hist[0,:], cmap=cm.jet, 
+#                 vmin=params['a_min'], vmax=params['a_max'], edgecolor='none', marker='o')
+# cbar = plt.colorbar(sc)
+# cbar.set_label(r"Longitudinal Accel [$m/s^2$]", size=20)
+# plt.show()
 
 
 
