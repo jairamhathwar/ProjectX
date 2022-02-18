@@ -211,6 +211,8 @@ class Tracking_Stanley(object):
 
                     acceleration, steering = self.stanley_tracker(
                                                     self.target_speed, car_state)
+                    
+                    print(acceleration)
 
                     control = RCControl()
                     control.header.stamp = current_t
