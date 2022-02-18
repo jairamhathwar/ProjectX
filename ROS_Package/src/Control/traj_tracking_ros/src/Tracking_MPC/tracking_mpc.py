@@ -123,7 +123,7 @@ class Tracking_MPC:
         ref_traj = RefTraj(msg)
         self.traj_buffer.writeFromNonRT(ref_traj)
 
-    def pose_sub_callback(self, msg: PoseStamped):
+    def pose_sub_callback(self, msg):
         """
         Subscriber callback function of the robot pose
         """
