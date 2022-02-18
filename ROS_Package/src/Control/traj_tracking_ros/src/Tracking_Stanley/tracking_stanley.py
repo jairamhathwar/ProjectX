@@ -212,14 +212,17 @@ class Tracking_Stanley(object):
                     acceleration, steering = self.stanley_tracker(
                                                     self.target_speed, car_state)
                     
-                    print(acceleration)
+                    
 
                     control = RCControl()
                     control.header.stamp = current_t
                     #! MAP VALUE OF STANLEY OUTPUT TO THROTTLE AND STEERING
-                    control.throttle = 0.15 #! CHANGE TO MAPPED VALUE
+                    control.throttle = 0.15 * abs(acceleration)
                     control.steer = np.clip(-steering / np.radians(40.0), -1, 1)
-                    control.reverse = False
+                    if acceleration < 0.0:
+                        control.reverse = True
+                    else:
+                        control.reverse = False
 
                     self.control_pub.publish(control)
                     self.last_pub_t = current_t
