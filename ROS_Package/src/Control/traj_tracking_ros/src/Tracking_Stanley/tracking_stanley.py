@@ -217,7 +217,7 @@ class Tracking_Stanley(object):
                     control = RCControl()
                     control.header.stamp = current_t
                     #! MAP VALUE OF STANLEY OUTPUT TO THROTTLE AND STEERING
-                    control.throttle = 0.15 * abs(acceleration)
+                    control.throttle = 0.2 * abs(acceleration)
                     control.steer = np.clip(-steering / np.radians(40.0), -1, 1)
                     if acceleration < 0.0:
                         control.reverse = True
