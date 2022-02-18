@@ -47,6 +47,15 @@ class PIDController(object):
 
 
 class StanleyTracker(object):
+    """
+    A StanleyTracker has a Stanley controller, a PID controller 
+    and a reference trajectory (course).
+
+    Intialize the Stanley tracker with the course, the current position 
+    of the car. The tracker will figure out the closest point on the course 
+    wrt the intial point, and start outputting acceleration and steering
+    to drive the car toward the course and stay on the course.
+    """
     def __init__(self, state_0, course):
         """
         Stanley tracker
@@ -55,8 +64,10 @@ class StanleyTracker(object):
         """
         self.stanley_controller = StanleyController()
         self.pid_controller = PIDController()
+        # reference trajectory (course)
         self.course = course
-        self.target_idx, _ = calc_target_index(state_0, )
+        # initial target index w.r.t to the fitted course
+        self.target_idx, _ = course.calculate_target_index(state_0)
     
     def __call__(self, target_velocity, actual_state):
         """
@@ -67,6 +78,6 @@ class StanleyTracker(object):
         # acceleration ai
         ai = self.pid_controller(target_velocity, actual_state.v)
         # steering di
-        di, target_idx = self.stanley_controller(
-            actual_state, trajectory.x, trajectory.y, trajectory.yaw, )
+        di, self.target_idx = self.stanley_controller(
+            actual_state, self.course, self.target_idx)
         return ai, di

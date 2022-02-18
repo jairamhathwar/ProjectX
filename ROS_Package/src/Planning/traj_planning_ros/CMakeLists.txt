@@ -107,7 +107,7 @@ catkin_package(
    CATKIN_DEPENDS rospy std_msgs rc_control_msgs 
 #  DEPENDS system_lib
 )
-catkin_install_python(PROGRAMS scripts/traj_planning_node.py 
+catkin_install_python(PROGRAMS scripts/traj_planning_node.py scripts/simple_planning_node.py
 			DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 ###########

@@ -50,7 +50,7 @@ def main():
     while max_simulation_time >= time and last_idx > target_idx:
         ai = pid_controller(target_speed, state.v)
         di, target_idx = stanley_controller(state, course, target_idx)
-        state.update(ai, di)
+        state.step(ai, di)
 
         time += state.dt
 
