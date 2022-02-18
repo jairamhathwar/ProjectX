@@ -10,7 +10,7 @@ class CarState(object):
     :param v: (float) speed
     """
 
-    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0, dt=0.1, L=0.26, max_steer = np.radians(30.0)):
+    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0, dt=0.1, L=0.26, max_steer = np.radians(20.0)):
         """Instantiate the object."""
         super(CarState, self).__init__()
         self.x = x

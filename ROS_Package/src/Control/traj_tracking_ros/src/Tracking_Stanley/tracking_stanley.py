@@ -74,13 +74,16 @@ class Tracking_Stanley(object):
         self.course = None
 
         # self.target_speed = 30.0 / 3.6  # [m/s]
-        self.target_speed = 1.0
+        self.target_speed = 1.0 # [m/s]
 
         self.current_pose = None
         self.current_pose_delta = None
         self.current_yaw = None
         self.current_t = None
         self.last_pub_t = None
+
+        # tuning params
+        self.stanley_k=2.0
 
         self.thread_lock = threading.Lock()
 
@@ -175,7 +178,7 @@ class Tracking_Stanley(object):
                 y = self.current_pose[1],
                 yaw = self.current_yaw
             )
-            self.stanley_tracker = StanleyTracker(car_state, self.course)
+            self.stanley_tracker = StanleyTracker(car_state, self.course, k=self.stanley_k)
 
         self.thread_lock.release()
 
@@ -212,8 +215,8 @@ class Tracking_Stanley(object):
                     control = RCControl()
                     control.header.stamp = current_t
                     #! MAP VALUE OF STANLEY OUTPUT TO THROTTLE AND STEERING
-                    control.throttle = 0.05 #! CHANGE TO MAPPED VALUE
-                    control.steer = np.clip(-steering / np.radians(60.0), -1, 1)
+                    control.throttle = 0.15 #! CHANGE TO MAPPED VALUE
+                    control.steer = np.clip(-steering / np.radians(40.0), -1, 1)
                     control.reverse = False
 
                     self.control_pub.publish(control)

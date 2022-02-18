@@ -56,13 +56,13 @@ class StanleyTracker(object):
     wrt the intial point, and start outputting acceleration and steering
     to drive the car toward the course and stay on the course.
     """
-    def __init__(self, state_0, course):
+    def __init__(self, state_0, course, k=5.0):
         """
         Stanley tracker
         :param state_0: (CarState)
         :param course: (RefTraj)
         """
-        self.stanley_controller = StanleyController()
+        self.stanley_controller = StanleyController(k=k)
         self.pid_controller = PIDController()
         # reference trajectory (course)
         self.course = course
