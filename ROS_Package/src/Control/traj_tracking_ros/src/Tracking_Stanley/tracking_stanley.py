@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from stanley_controller import StanleyTracker
 import rospy
 from traj_msgs.msg import Trajectory
@@ -14,7 +14,7 @@ import numpy as np
 from realtime_buffer import RealtimeBuffer
 from copy import copy, deepcopy
 import threading
-from spatialmath.base import *
+# from spatialmath.base import *
 
 import cubic_spline_planner
 from car_state import CarState
@@ -26,7 +26,8 @@ class Course(object):
     Creata lists of x, y, psi, vel using  fitting 
     based on the x, y, psi, vel of the Trajectory message
     """
-    def __init__(self, msg: Trajectory):
+    # def __init__(self, msg: Trajectory):
+    def __init__(self, msg):
         '''
         Decode the ros message and apply cubic interpolation 
         '''
@@ -212,8 +213,6 @@ class Tracking_Stanley(object):
                     acceleration, steering = self.stanley_tracker(
                                                     self.target_speed, car_state)
                     
-                    
-
                     control = RCControl()
                     control.header.stamp = current_t
                     #! MAP VALUE OF STANLEY OUTPUT TO THROTTLE AND STEERING

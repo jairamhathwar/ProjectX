@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import rospy
 from geometry_msgs.msg import PoseStamped
 from traj_msgs.msg import Trajectory
@@ -65,7 +65,8 @@ if __name__ == "__main__":
         listener.lock.acquire()
         plt.plot(listener.course.x, listener.course.y, ".r", label="course", linewidth = 10.0)
         plt.plot(listener.x_traj, listener.y_traj, linewidth = 5.0, alpha=0.6)
-        plt.plot([listener.x_traj[-1], listener.directional_arrow[0]], [listener.y_traj[-1], listener.directional_arrow[1]], "g", alpha = 0.2)
+        if len(listener.x_traj) > 0 and len(listener.directional_arrow) > 0 :
+            plt.plot([listener.x_traj[-1], listener.directional_arrow[0]], [listener.y_traj[-1], listener.directional_arrow[1]], "g", alpha = 0.2)
         listener.lock.release()
         plt.xlim((-4, 2))
         plt.ylim((-2, 6))
