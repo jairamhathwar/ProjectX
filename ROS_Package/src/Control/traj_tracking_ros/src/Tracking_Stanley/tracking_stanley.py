@@ -109,7 +109,8 @@ class Tracking_Stanley(object):
 
         threading.Thread(target=self.control_pub_thread).start()
 
-    def course_sub_callback(self, msg: Trajectory):
+    # def course_sub_callback(self, msg: Trajectory):
+    def course_sub_callback(self, msg):
         """
         Subscriber callback function of the reference trajectory
         """
@@ -117,7 +118,8 @@ class Tracking_Stanley(object):
         self.course = Course(msg)
         self.thread_lock.release()
 
-    def pose_sub_callback(self, msg: PoseStamped):
+    # def pose_sub_callback(self, msg: PoseStamped):
+    def pose_sub_callback(self, msg):
         """
         Subscriber callback function of the robot pose
         """
@@ -216,7 +218,7 @@ class Tracking_Stanley(object):
                     control = RCControl()
                     control.header.stamp = current_t
                     #! MAP VALUE OF STANLEY OUTPUT TO THROTTLE AND STEERING
-                    control.throttle = 0.2 * abs(acceleration)
+                    control.throttle = 0.1 * abs(acceleration)
                     control.steer = np.clip(-steering / np.radians(40.0), -1, 1)
                     if acceleration < 0.0:
                         control.reverse = True
