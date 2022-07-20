@@ -2,6 +2,7 @@
     <include file="$(find rc_control)/launch/rc_control_node.launch"/>
     <include file="$(find zed_wrapper)/launch/zed2.launch"/>
     <node name="stanley_tracker_node" pkg="traj_tracking_ros" type="tracking_stanley.py" output="screen"/>
-    <node name="astar_planning_node" pkg="traj_planning_ros" type="astar_planning_node.py" />
+    <node name="astar_planning_node" pkg="traj_planning_ros" type="astar_planning_node.py" output="screen" />
     <node name="tracking_visualize_node" pkg="traj_tracking_ros" type="tracking_visualizer.py" />
+    <include file="$(find vicon_bridge)/launch/vicon.launch" />
 </launch>

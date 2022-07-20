@@ -11,6 +11,9 @@ https://realitybytes.blog/2018/08/17/graph-based-path-planning-a/
 from traj_msgs.msg import Trajectory
 import rospy
 
+from geometry_msgs.msg import TransformStamped
+from scipy.spatial.transform import Rotation
+
 import matplotlib.pyplot as plt
 from copy import deepcopy
 import numpy as np
@@ -18,11 +21,10 @@ import math
 
 COLOR_MAP = (0, 8)
 
-class PathPlanner:
-
+class AStarPlanner:
     def __init__(self, grid, visual=False):
         """
-        Constructor of the PathPlanner Class.
+        Constructor of the AStarPlanner Class.
         :param grid: List of lists that represents the
         occupancy map/grid. List should only contain 0's
         for open nodes and 1's for obstacles/walls.
@@ -47,14 +49,15 @@ class PathPlanner:
 
         self.heuristic = [[0 for x in range(col)] for y in range(row)]
         
+        # Calculating heuristic using euclidin distance to goal point
         for i in range(row - 1 , -1, -1):
             for j in range(col):
                 distance = math.sqrt( (i - self.goal_node[0])**2 + (j - self.goal_node[1])**2 )
                 self.heuristic[row - 1 - i][j] = distance
 
-        print("Heuristic:")
-        for i in range(len(self.heuristic)):
-            print(self.heuristic[i])
+        # print("Heuristic:")
+        # for i in range(len(self.heuristic)):
+        #     print(self.heuristic[i])
 
 
 
@@ -198,39 +201,35 @@ class PathPlanner:
             plt.imshow(viz_map, origin='lower', interpolation='none', clim=COLOR_MAP)
             plt.pause(5)
 
-        # Return full_path, which is a list of tuples representing the path coords
+        # Return full_path -- a list of tuples representing the path coords
         return full_path[:-1]
 
-
-def publish_course():
+def plan_course(grid, start, goal):
+    # Create publisher    
     publisher = rospy.Publisher("/simple_trajectory_topic", Trajectory, queue_size=1)
-    rospy.init_node("simple_planning_node")
     rate = rospy.Rate(10)
 
-    # Create test grid and start & end points
-    test_grid = [[0, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0],
-                 [1, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0],
-                 [1, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0]]
-
-    test_start = [0, 0]  # [x, y]
-    test_goal = [0, 6]   # [x, y]
-     
-
-    # Create an instance of the PathPlanner class:
-    planner = PathPlanner(test_grid, False)
+    # Create an instance of the AStarPlanner class:
+    planner = AStarPlanner(grid, False)
 
     # Plan a path
-    planned_path = planner.a_star(test_start, test_goal)
-      
-    # convert planned_path (list of tuples) to 2 arrays with y and x points
+    planned_path = planner.a_star(start, goal)
+    
+    # Convert planned_path (list of tuples) to 2 arrays with y and x points
     result = list(map(list, zip(*planned_path)))
     ay, ax = result
 
+    # Insert start and goal points to the trajectory
+    ax.insert(0, start[0])
+    ay.insert(0, start[1])
+    ax.append(goal[0])
+    ay.append(goal[1])
+
+    # Shift values of x-axis down in order to work with Stanley controller
+    x_axis_center = len(grid[0]) // 2
+    ax = [n - x_axis_center for n in ax]
+
+    # Publish trajectory
     while not rospy.is_shutdown():
         message = Trajectory()
         message.x = ax
@@ -238,10 +237,120 @@ def publish_course():
         message.dt = 0.1
         publisher.publish(message)
         rate.sleep()
+    
+    rospy.spin()
+
+
+def insert_obstacle(grid, x, y):
+    grid[len(grid) - 1 - y][x] = 1
+    return grid
+
+def create_grid(using_vicon=False):
+    rospy.init_node("astar_planning_node")
+
+    if using_vicon:
+        # Get truck and box data from Vicon system
+        truck_data = rospy.wait_for_message("/vicon/truck/truck", TransformStamped, timeout=2)
+        box_data = rospy.wait_for_message("/vicon/box/box", TransformStamped, timeout=2)
+
+        # Get coordinates of truck and box (vicon frame --> ground frame)
+        truck_x = truck_data.transform.translation.y
+        truck_y = -1 * truck_data.transform.translation.x
+        box_x = box_data.transform.translation.y
+        box_y = -1 * box_data.transform.translation.x
+        box_z = box_data.transform.translation.z
+
+        # Round the values for use in grid
+        truck_x = round(truck_x)
+        truck_y = round(truck_y)
+        box_x = round(box_x)
+        box_y = round(box_y)
+
+        print(
+            "initial vicon: \n",
+            "truck: ", str([truck_x, truck_y]),
+            "\n box: ", str([box_x, box_y])
+        )
+
+        # Create empty grid
+        grid = np.zeros((10,9))
+
+        # Find the middle of the x-axis on the grid
+        x_axis_center = len(grid[0]) // 2
+
+        # Set starting and ending points on grid [x,y]
+        start = [x_axis_center, 0]
+        goal = [x_axis_center, 6]
+
+        # Shift coordinates of box so that truck begins at origin [0, 0]
+        box_x = box_x - truck_x
+        box_y = box_y - truck_y
+
+        print(
+            "after shifting: \n",
+            "truck: ", str([0, 0]),
+            "\n box: ", str([box_x, box_y])
+        )
+
+        # Find orientation of truck
+        truck_qz = truck_data.transform.rotation.z
+        truck_qw = truck_data.transform.rotation.w
+
+        # Rotate box coords to align to truck's orientation
+        r = Rotation.from_quat([0, 0, truck_qz, truck_qw])
+
+        v = [box_x, box_y, box_z]
+        print("\nv1:", str(v))
+
+        v = r.apply(v, inverse=True)
+        print("v1:", str(v))
+
+        box_x = round(v[0])
+        box_y = round(v[1])
+
+        print(
+            "\nafter rotation: \n",
+            "truck: ", str([0, 0]),
+            "\n box: ", str([box_x, box_y])
+        )
+
+        # Shift box according to the truck's start position on grid
+        box_x = box_x + start[0]
+        box_y = box_y + start[1]
+
+        print(
+            "after rotation + shift: \n",
+            "truck: ", str(start),
+            "\n box: ", str([box_x, box_y])
+        )
+
+        # Insert box location onto the empty grid
+        grid = insert_obstacle(grid, box_x, box_y)
+        print("\n" + str(grid))
+
+    else:
+        # Create test grid and start & end points
+        grid = [[0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 1, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0]]
+
+        # Find the middle of the x-axis on the grid
+        x_axis_center = len(grid[0]) // 2
+
+        # Set starting and ending points on grid [x,y]
+        start = [x_axis_center, 0] # [x, y]
+        goal = [x_axis_center, 6]   # [x, y]
+
+    plan_course(grid, start, goal)
 
 if __name__=="__main__":
     try:
-        publish_course()
+        create_grid(using_vicon = True)
     except rospy.ROSInterruptException:
         pass
     
