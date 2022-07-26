@@ -58,6 +58,7 @@ if __name__ == "__main__":
     plt.show()
     plt.figure(figsize=(3, 5))
 
+    rospy.wait_for_message("/simple_trajectory_topic", Trajectory)
     while not rospy.is_shutdown():
         display.clear_output(wait = True)
         display.display(plt.gcf())

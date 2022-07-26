@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
-This planning node uses the A* algorithm to output constant trajectory information 
-that can be used with stanley controller to control the car. The information
-will be packed into traj_msg type, with the x, y be used to create the fitted cubicspline
+This planning node creates a grid representing the region in front of the car.
+In the grid, a 0 indicates a clear node, while a 1 indicates an obstacle. 
+Vicon data is used to detect obstacles. Then, the A* algorithm outputs constant 
+trajectory information that can be used with stanley controller to control the car. 
+The information is packed into traj_msg type, with the x, y be used to create 
+the fitted cubicspline
 
 A* algorithm modified from:
 https://github.com/atomoclast/realitybytes_blogposts
@@ -109,8 +112,6 @@ class AStarPlanner:
                  [-1, 1]]  # lower right
         delta_name = ['^ ', '< ', 'v ', '> ', 'UL', 'LL', 'UR', 'LR']
 
-        # Heavily used from some of the A* Examples by Sebastian Thrun:
-
         num_rows = len(self.grid)
         num_cols = len(self.grid[0])
 
@@ -204,153 +205,187 @@ class AStarPlanner:
         # Return full_path -- a list of tuples representing the path coords
         return full_path[:-1]
 
-def plan_course(grid, start, goal):
-    # Create publisher    
-    publisher = rospy.Publisher("/simple_trajectory_topic", Trajectory, queue_size=1)
-    rate = rospy.Rate(10)
 
-    # Create an instance of the AStarPlanner class:
-    planner = AStarPlanner(grid, False)
+class GridMaker:
+    def __init__(self, using_vicon):
+        self.drone_x = 0
+        self.drone_y = 0
+        self.drone_z = 0
+        self.box_x = 0
+        self.box_y = 0
+        self.is_visible = False
+        self.using_vicon = using_vicon
 
-    # Plan a path
-    planned_path = planner.a_star(start, goal)
-    
-    # Convert planned_path (list of tuples) to 2 arrays with y and x points
-    result = list(map(list, zip(*planned_path)))
-    ay, ax = result
+    def plan_course(self, grid, start, goal):
+        # Create publisher    
+        publisher = rospy.Publisher("/simple_trajectory_topic", Trajectory, queue_size=1)
+        rate = rospy.Rate(10)
 
-    # Insert start and goal points to the trajectory
-    ax.insert(0, start[0])
-    ay.insert(0, start[1])
-    ax.append(goal[0])
-    ay.append(goal[1])
+        # Create an instance of the AStarPlanner class:
+        planner = AStarPlanner(grid, False)
 
-    # Shift values of x-axis down in order to work with Stanley controller
-    x_axis_center = len(grid[0]) // 2
-    ax = [n - x_axis_center for n in ax]
+        # Plan a path
+        planned_path = planner.a_star(start, goal)
+        
+        # Convert planned_path (list of tuples) to 2 arrays with y and x points
+        result = list(map(list, zip(*planned_path)))
+        ay, ax = result
 
-    # Publish trajectory
-    while not rospy.is_shutdown():
-        message = Trajectory()
-        message.x = ax
-        message.y = ay
-        message.dt = 0.1
-        publisher.publish(message)
-        rate.sleep()
-    
-    rospy.spin()
+        # Insert start and goal points to the trajectory
+        ax.insert(0, start[0])
+        ay.insert(0, start[1])
+        ax.append(goal[0])
+        ay.append(goal[1])
 
-
-def insert_obstacle(grid, x, y):
-    grid[len(grid) - 1 - y][x] = 1
-    return grid
-
-def create_grid(using_vicon=False):
-    rospy.init_node("astar_planning_node")
-
-    if using_vicon:
-        # Get truck and box data from Vicon system
-        truck_data = rospy.wait_for_message("/vicon/truck/truck", TransformStamped, timeout=2)
-        box_data = rospy.wait_for_message("/vicon/box/box", TransformStamped, timeout=2)
-
-        # Get coordinates of truck and box (vicon frame --> ground frame)
-        truck_x = truck_data.transform.translation.y
-        truck_y = -1 * truck_data.transform.translation.x
-        box_x = box_data.transform.translation.y
-        box_y = -1 * box_data.transform.translation.x
-        box_z = box_data.transform.translation.z
-
-        # Round the values for use in grid
-        truck_x = round(truck_x)
-        truck_y = round(truck_y)
-        box_x = round(box_x)
-        box_y = round(box_y)
-
-        print(
-            "initial vicon: \n",
-            "truck: ", str([truck_x, truck_y]),
-            "\n box: ", str([box_x, box_y])
-        )
-
-        # Create empty grid
-        grid = np.zeros((10,9))
-
-        # Find the middle of the x-axis on the grid
+        # Shift values of x-axis down in order to work with Stanley controller
         x_axis_center = len(grid[0]) // 2
+        ax = [n - x_axis_center for n in ax]
 
-        # Set starting and ending points on grid [x,y]
-        start = [x_axis_center, 0]
-        goal = [x_axis_center, 6]
+        # Publish trajectory
+        while not rospy.is_shutdown():
+            message = Trajectory()
+            message.x = ax
+            message.y = ay
+            message.dt = 0.1
+            publisher.publish(message)
+            rate.sleep()
+        
+        rospy.spin()
 
-        # Shift coordinates of box so that truck begins at origin [0, 0]
-        box_x = box_x - truck_x
-        box_y = box_y - truck_y
+    def insert_obstacle(self, grid, x, y):
+        grid[len(grid) - 1 - y][x] = 1
+        return grid
 
-        print(
-            "after shifting: \n",
-            "truck: ", str([0, 0]),
-            "\n box: ", str([box_x, box_y])
-        )
+    def create_grid(self):
+        rospy.init_node("astar_planning_node")
 
-        # Find orientation of truck
-        truck_qz = truck_data.transform.rotation.z
-        truck_qw = truck_data.transform.rotation.w
+        if self.using_vicon:
+            # Keep checking the drone's location before the box is visible
+            while not self.is_visible:
+                box_data = rospy.wait_for_message("/vicon/box/box", TransformStamped, timeout=2)
+                self.box_x = box_data.transform.translation.y
+                self.box_y = -1 * box_data.transform.translation.x
 
-        # Rotate box coords to align to truck's orientation
-        r = Rotation.from_quat([0, 0, truck_qz, truck_qw])
+                rospy.Subscriber("/vicon/cf231/cf231", TransformStamped, self.update_drone)
+                self.check_drone()
+            
+            # Get truck and box data from Vicon system
+            truck_data = rospy.wait_for_message("/vicon/truck/truck", TransformStamped, timeout=2)
 
-        v = [box_x, box_y, box_z]
-        print("\nv1:", str(v))
+            # Get coordinates of truck and box (vicon frame --> ground frame)
+            truck_x = truck_data.transform.translation.y
+            truck_y = -1 * truck_data.transform.translation.x
+            box_x = self.box_x
+            box_y = self.box_y
+            box_z = box_data.transform.translation.z
 
-        v = r.apply(v, inverse=True)
-        print("v1:", str(v))
+            # Round the values for use in grid
+            truck_x = round(truck_x)
+            truck_y = round(truck_y)
+            box_x = round(box_x)
+            box_y = round(box_y)
 
-        box_x = round(v[0])
-        box_y = round(v[1])
+            print(
+                "initial vicon: \n",
+                "truck: ", str([truck_x, truck_y]),
+                "\n box: ", str([box_x, box_y])
+            )
 
-        print(
-            "\nafter rotation: \n",
-            "truck: ", str([0, 0]),
-            "\n box: ", str([box_x, box_y])
-        )
+            # Create empty grid
+            grid = np.zeros((10,9))
 
-        # Shift box according to the truck's start position on grid
-        box_x = box_x + start[0]
-        box_y = box_y + start[1]
+            # Find the middle of the x-axis on the grid
+            x_axis_center = len(grid[0]) // 2
 
-        print(
-            "after rotation + shift: \n",
-            "truck: ", str(start),
-            "\n box: ", str([box_x, box_y])
-        )
+            # Set starting and ending points on grid [x,y]
+            start = [x_axis_center, 0]
+            goal = [x_axis_center, 6]
 
-        # Insert box location onto the empty grid
-        grid = insert_obstacle(grid, box_x, box_y)
-        print("\n" + str(grid))
+            # Shift coordinates of box so that truck begins at origin [0, 0]
+            box_x = box_x - truck_x
+            box_y = box_y - truck_y
 
-    else:
-        # Create test grid and start & end points
-        grid = [[0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 1, 1, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0]]
+            print(
+                "after shifting: \n",
+                "truck: ", str([0, 0]),
+                "\n box: ", str([box_x, box_y])
+            )
 
-        # Find the middle of the x-axis on the grid
-        x_axis_center = len(grid[0]) // 2
+            # Find orientation of truck
+            truck_qz = truck_data.transform.rotation.z
+            truck_qw = truck_data.transform.rotation.w
 
-        # Set starting and ending points on grid [x,y]
-        start = [x_axis_center, 0] # [x, y]
-        goal = [x_axis_center, 6]   # [x, y]
+            # Rotate box coords to align to truck's orientation
+            r = Rotation.from_quat([0, 0, truck_qz, truck_qw])
 
-    plan_course(grid, start, goal)
+            v = [box_x, box_y, box_z]
+            print("\nv1:", str(v))
+
+            v = r.apply(v, inverse=True)
+            print("v1:", str(v))
+
+            box_x = round(v[0])
+            box_y = round(v[1])
+
+            print(
+                "\nafter rotation: \n",
+                "truck: ", str([0, 0]),
+                "\n box: ", str([box_x, box_y])
+            )
+
+            # Shift box according to the truck's start position on grid
+            box_x = box_x + start[0]
+            box_y = box_y + start[1]
+
+            print(
+                "after rotation + shift: \n",
+                "truck: ", str(start),
+                "\n box: ", str([box_x, box_y])
+            )
+
+            # Insert box location onto the empty grid
+            grid = self.insert_obstacle(grid, box_x, box_y)
+            print("\n" + str(grid))
+
+        else:
+            # Create test grid and start & end points
+            grid = [[0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0]]
+
+            # Find the middle of the x-axis on the grid
+            x_axis_center = len(grid[0]) // 2
+
+            # Set starting and ending points on grid [x,y]
+            start = [x_axis_center, 0]  # [x, y]
+            goal = [x_axis_center, 6]   # [x, y]
+
+        self.plan_course(grid, start, goal)
+
+    # Update the drone's location
+    def update_drone(self, drone_data):
+        self.drone_x = drone_data.transform.translation.y
+        self.drone_y = -1 * drone_data.transform.translation.x
+        self.drone_z = drone_data.transform.translation.z
+
+    # Check if drone is able to see the box
+    def check_drone(self):
+        # Assume 90 degree FOV, so height = radius of cone
+        radius = self.drone_z
+
+        # Check if box is inside the circle of drone's vision
+        self.is_visible = (self.box_x - self.drone_x)**2 + (self.box_y - self.drone_y)**2 <= radius**2
+        print("Box visible:", str(self.is_visible))
 
 if __name__=="__main__":
     try:
-        create_grid(using_vicon = True)
+        grid_maker = GridMaker(using_vicon = True)
+        grid_maker.create_grid()
     except rospy.ROSInterruptException:
         pass
     
