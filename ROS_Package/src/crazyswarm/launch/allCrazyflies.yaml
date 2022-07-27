@@ -2,10 +2,7 @@ crazyflies:
   - id: 231
     # initialPosition: [-0.053, 0.003, 0.026]
     # initialPosition: [1.042, 0.011, 0.028]
-    initialPosition: [1.77, 0.28, 0.03]
+    initialPosition: [1.77, 0.28, 0.03]   # center route
+    # initialPosition: [0.98, 2.05, 0.04]   # diagonal route
     channel: 80
-    type: default
-  - id: 7
-    channel: 80
-    initialPosition: [-1.0, 0.0, 0.0]
     type: default

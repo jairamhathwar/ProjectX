@@ -55,7 +55,7 @@
     <param name="timescale" value="0.8" />
   </node>
 
-  <node pkg="crazyswarm" type="hello_world.py" name="hello_world" output="screen">
+  <node pkg="crazyswarm" type="top_gun.py" name="top_gun" output="screen">
     <param name="cf_yaml_file" value="$(find crazyswarm)/launch/crazyflies.yaml" />
   </node>
 

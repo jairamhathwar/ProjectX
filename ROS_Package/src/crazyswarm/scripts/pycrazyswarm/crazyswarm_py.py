@@ -40,7 +40,7 @@ class Crazyswarm:
 
         if crazyflies_yaml is None:
             # crazyflies_yaml = "../launch/crazyflies.yaml"
-            crazyflies_yaml = rospy.get_param('/hello_world/cf_yaml_file') 
+            crazyflies_yaml = rospy.get_param('/top_gun/cf_yaml_file') 
         if crazyflies_yaml.endswith(".yaml"):
             crazyflies_yaml = open(crazyflies_yaml, 'r').read()
 

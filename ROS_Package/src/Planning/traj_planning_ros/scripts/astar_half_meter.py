@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
 """
-This planning node creates a grid representing the region in front of the car.
-In the grid, a 0 indicates a clear node, while a 1 indicates an obstacle. 
-Vicon data is used to detect obstacles. Then, the A* algorithm outputs constant 
-trajectory information that can be used with stanley controller to control the car. 
-The information is packed into traj_msg type, with the x, y be used to create 
-the fitted cubicspline
-
-A* algorithm modified from:
-https://github.com/atomoclast/realitybytes_blogposts
-https://realitybytes.blog/2018/08/17/graph-based-path-planning-a/
+This is a version of the A* Planning Node in which we experimented with changing
+the A* grid size from 1 meter between nodes to 0.5 meters between nodes.
+However, this seemed to create harder paths for the truck to follow, so we 
+reverted to setting 1 meter between nodes. 
 """
 from traj_msgs.msg import Trajectory
 import rospy
@@ -110,6 +104,7 @@ class AStarPlanner:
                  [-1, -1], # lower left
                  [1, 1],   # upper right
                  [-1, 1]]  # lower right
+        # delta_name = ['^ ', '< ', 'v ', '> ']
         delta_name = ['^ ', '< ', 'v ', '> ', 'UL', 'LL', 'UR', 'LR']
 
         num_rows = len(self.grid)
@@ -207,18 +202,14 @@ class AStarPlanner:
 
 
 class GridMaker:
-    def __init__(self, num_boxes, using_vicon, using_drone):
+    def __init__(self, using_vicon):
         self.drone_x = 0
         self.drone_y = 0
         self.drone_z = 0
-        self.num_boxes = num_boxes
+        self.box_x = 0
+        self.box_y = 0
+        self.is_visible = True
         self.using_vicon = using_vicon
-        self.using_drone = using_drone
-        self.box_x = np.zeros(self.num_boxes)
-        self.box_y = np.zeros(self.num_boxes)
-        self.is_visible = []
-        for i in range(self.num_boxes):
-            self.is_visible.append(not using_drone)
 
     def plan_course(self, grid, start, goal):
         # Create publisher    
@@ -245,6 +236,9 @@ class GridMaker:
         x_axis_center = len(grid[0]) // 2
         ax = [n - x_axis_center for n in ax]
 
+        ax = [n / 2 for n in ax]
+        ay = [n / 2 for n in ay]
+
         # Publish trajectory
         while not rospy.is_shutdown():
             message = Trajectory()
@@ -257,85 +251,72 @@ class GridMaker:
         rospy.spin()
 
     def insert_obstacle(self, grid, x, y):
-        for i in range(self.num_boxes):
-            grid[len(grid) - 1 - y[i]][x[i]] = 1
-
+        grid[len(grid) - 1 - y][x] = 1
         return grid
 
     def create_grid(self):
         rospy.init_node("astar_planning_node")
 
         if self.using_vicon:
-            print("\nVISIBLE:", str(self.check_visible()))
-            box_z = np.zeros(self.num_boxes)
-
             # Keep checking the drone's location before the box is visible
-            if self.using_drone:
-                while not self.check_visible():
-                    for i in range(self.num_boxes):
-                        # Capture the location of the boxes
-                        topic = "/vicon/box" + str(i) + "/box" + str(i)
-                        box_data = rospy.wait_for_message(topic, TransformStamped, timeout=2)
+            while not self.is_visible:
+                box_data = rospy.wait_for_message("/vicon/box/box", TransformStamped, timeout=2)
+                self.box_x = box_data.transform.translation.y
+                self.box_y = -1 * box_data.transform.translation.x
 
-                        self.box_x[i] = (box_data.transform.translation.y)
-                        self.box_y[i] = (-1 * box_data.transform.translation.x)
-                        box_z[i] = (box_data.transform.translation.z)
-
-                    rospy.Subscriber("/vicon/cf231/cf231", TransformStamped, self.update_drone)
-                    self.check_drone()
-
-            # When not using drone input
-            else:
-                for i in range(self.num_boxes):
-                    # Capture the location of the boxes
-                    topic = "/vicon/box" + str(i) + "/box" + str(i)
-                    box_data = rospy.wait_for_message(topic, TransformStamped, timeout=2)
-
-                    self.box_x[i] = (box_data.transform.translation.y)
-                    self.box_y[i] = (-1 * box_data.transform.translation.x)
-                    box_z[i] = (box_data.transform.translation.z)
-
+                rospy.Subscriber("/vicon/cf231/cf231", TransformStamped, self.update_drone)
+                self.check_drone()
+            
             # Get truck and box data from Vicon system
             truck_data = rospy.wait_for_message("/vicon/truck/truck", TransformStamped, timeout=2)
+            
+            # TEMPORARY --> for use without drone
+            box_data = rospy.wait_for_message("/vicon/box/box", TransformStamped, timeout=2)
+            self.box_x = box_data.transform.translation.y
+            self.box_y = -1 * box_data.transform.translation.x
 
-            # Get coordinates of truck and boxes (vicon frame --> ground frame)
+            # Get coordinates of truck and box (vicon frame --> ground frame)
             truck_x = truck_data.transform.translation.y
             truck_y = -1 * truck_data.transform.translation.x
             box_x = self.box_x
             box_y = self.box_y
+            box_z = box_data.transform.translation.z
 
             # Round the values for use in grid
-            truck_x = round(truck_x)
-            truck_y = round(truck_y)
-            box_x = [round(x) for x in box_x]
-            box_y = [round(x) for x in box_y]
+            truck_x = round(truck_x * 2)
+            truck_y = round(truck_y * 2)
+            box_x = round(box_x * 2)
+            box_y = round(box_y * 2)
 
             print(
-                "initial vicon (axes flipped): \n",
+                "initial vicon: \n",
                 "truck: ", str([truck_x, truck_y]),
-                "\n box_x: ", str(box_x),
-                "\n box_y: ", str(box_y)
+                "\n box: ", str([box_x, box_y])
             )
 
-            # Create empty grid
-            grid = np.zeros((10,9))
+            # Create empty grid (even by even)
+            grid = np.zeros((6,6))
 
             # Find the middle of the x-axis on the grid
             x_axis_center = len(grid[0]) // 2
 
             # Set starting and ending points on grid [x,y]
             start = [x_axis_center, 0]
-            goal = [x_axis_center, 6]
+            goal = [x_axis_center, 5]
 
-            # Shift coordinates of boxes so that truck begins at origin [0, 0]
-            box_x = [x - truck_x for x in box_x]
-            box_y = [x - truck_y for x in box_y]
+            # Double the size of the grid
+            grid = np.zeros((len(grid)*2, len(grid[0])*2 + 1)) # 6x6 --> 12x13
+            start = [2*x for x in start]
+            goal = [2*x for x in goal]
+
+            # Shift coordinates of box so that truck begins at origin [0, 0]
+            box_x = box_x - truck_x
+            box_y = box_y - truck_y
 
             print(
                 "after shifting: \n",
                 "truck: ", str([0, 0]),
-                "\n box_x: ", str(box_x),
-                "\n box_y: ", str(box_y)
+                "\n box: ", str([box_x, box_y])
             )
 
             # Find orientation of truck
@@ -348,34 +329,26 @@ class GridMaker:
             v = [box_x, box_y, box_z]
             print("\nv1:", str(v))
 
-            v = np.transpose(v)
+            v = r.apply(v, inverse=True)
+            print("v1:", str(v))
 
-            for i in range(len(v)):
-                v[i] = r.apply(v[i], inverse=True)
-            
-            print("v2:", str(v))
-
-            v = np.transpose(v)
-
-            box_x = [round(x) for x in v[0]]
-            box_y = [round(y) for y in v[1]]
+            box_x = round(v[0])
+            box_y = round(v[1])
 
             print(
                 "\nafter rotation: \n",
                 "truck: ", str([0, 0]),
-                "\n box_x: ", str(box_x),
-                "\n box_y: ", str(box_y)
+                "\n box: ", str([box_x, box_y])
             )
 
             # Shift box according to the truck's start position on grid
-            box_x = [x + start[0] for x in box_x]
-            box_y = [x + start[1] for x in box_y]
+            box_x = box_x + start[0]
+            box_y = box_y + start[1]
 
             print(
                 "after rotation + shift: \n",
                 "truck: ", str(start),
-                "\n box_x: ", str(box_x),
-                "\n box_y: ", str(box_y)
+                "\n box: ", str([box_x, box_y])
             )
 
             # Insert box location onto the empty grid
@@ -384,21 +357,30 @@ class GridMaker:
 
         else:
             # Create test grid and start & end points
-            grid = [[0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 1, 1, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0]]
+            grid = np.zeros((6,6))
 
             # Find the middle of the x-axis on the grid
             x_axis_center = len(grid[0]) // 2
 
             # Set starting and ending points on grid [x,y]
             start = [x_axis_center, 0]  # [x, y]
-            goal = [x_axis_center, 6]   # [x, y]
+            goal = [x_axis_center, 5]   # [x, y]
+
+            box_x = 3
+            box_y = 3.5
+            box_x = round(box_x * 2)
+            box_y = round(box_y * 2)
+
+            # Double the size of the grid
+            grid = np.zeros((len(grid)*2, len(grid[0])*2 + 1)) # 6x6 --> 12x13
+            start = [2*x for x in start]
+            goal = [2*x for x in goal]
+            print("\n" + str(start))
+            print("\n" + str(goal))
+
+            grid = self.insert_obstacle(grid, box_x, box_y)
+            print("\n" + str(grid))
+
 
         self.plan_course(grid, start, goal)
 
@@ -413,22 +395,13 @@ class GridMaker:
         # Assume 90 degree FOV, so height = radius of cone
         radius = self.drone_z
 
-        for i in range(self.num_boxes):
-            # Check if box is inside the circle of drone's vision
-            if not self.is_visible[i]:
-                self.is_visible[i] = (self.box_x[i] - self.drone_x)**2 + (self.box_y[i] - self.drone_y)**2 <= radius**2
-            print("Box visible:", str(self.is_visible))
-
-    # Check if all boxs are visible
-    def check_visible(self):
-        for x in self.is_visible:
-            if not x:
-                return False
-        return True
+        # Check if box is inside the circle of drone's vision
+        self.is_visible = (self.box_x - self.drone_x)**2 + (self.box_y - self.drone_y)**2 <= radius**2
+        print("Box visible:", str(self.is_visible))
 
 if __name__=="__main__":
     try:
-        grid_maker = GridMaker(num_boxes = 2, using_vicon = True, using_drone = True)
+        grid_maker = GridMaker(using_vicon = True)
         grid_maker.create_grid()
     except rospy.ROSInterruptException:
         pass
